@@ -10,7 +10,7 @@ Her bir uygulama kendi klasörü içerisinde yer almaktadır ve doğrudan taray�
 ## 🚀 Uygulamalar ve Canlı Bağlantılar
 
 Uygulamaları tarayıcınızda hemen denemek için aşağıdaki bağlantılara tıklayabilirsiniz:
-(Yeni sekmede açmak için Ctrl + Tık veya orta tuş kullanın)
+* (Yeni sekmede açmak için Ctrl + Tık veya orta tuş kullanın)
 
 * [CPU vs GPU vs AI Model](https://zsahan.github.io/ai-project-files/cpu-gpu-ai-karsilastirma/)** - *CPU vs GPU vs AI Model Karşılaştırması* 
 * **[CPU Teorik compute](https://zsahan.github.io/ai-project-files/cpu-compute-hesaplama/)** - *CPU Teorik olarak saniyedeki işlem hesaplaması*
