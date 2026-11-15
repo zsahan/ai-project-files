@@ -1,1 +1,1035 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Müzik Dinle & Video Metadata Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        studio: {
+                            base: '#0b0f19',
+                            panel: '#151c2c',
+                            border: '#28354d',
+                            accent: '#06b6d4',
+                            accentHover: '#0891b2',
+                            highlight: '#38bdf8',
+                            muted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #28354d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+        body {
+            font-size: 16px;
+        }
+        .th-sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .th-sortable:hover {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="bg-studio-base text-slate-100 font-sans h-full flex flex-col overflow-hidden text-base">
 
+    <!-- TOP HEADER / DIRECTORY BAR -->
+    <header class="bg-studio-panel border-b border-studio-border px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-xl">
+        <div class="flex items-center gap-4">
+            <!-- Cyber Shield Headphones Logo -->
+            <div class="relative group cursor-pointer">
+                <div class="absolute -inset-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full blur opacity-50 group-hover:opacity-85 transition duration-300"></div>
+                <div class="relative w-14 h-14 bg-slate-950 rounded-full border border-cyan-500/60 flex items-center justify-center overflow-hidden shadow-inner">
+                    <svg viewBox="0 0 100 100" class="w-11 h-11 drop-shadow">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#06b6d4" stroke-width="3" stroke-dasharray="4 2"/>
+                        <path d="M 25 52 A 28 28 0 0 1 75 52" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/>
+                        <rect x="18" y="48" width="10" height="18" rx="4" fill="#0891b2" stroke="#38bdf8" stroke-width="2"/>
+                        <rect x="72" y="48" width="10" height="18" rx="4" fill="#0891b2" stroke="#38bdf8" stroke-width="2"/>
+                        <path d="M 50 40 L 62 48 V 62 L 50 72 L 38 62 V 48 Z" fill="#0f172a" stroke="#06b6d4" stroke-width="2.5"/>
+                        <polygon points="47,50 57,55 47,60" fill="#38bdf8"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div>
+                <h1 class="font-bold text-xl tracking-wide text-white flex items-center gap-2">
+                    Müzik Dinle <span class="text-xs bg-cyan-950 text-cyan-400 font-mono px-3 py-1 rounded-full border border-cyan-700">v3.5 PRO</span>
+                </h1>
+                <p class="text-xs md:text-sm text-studio-muted">Media Archiver & Video-to-Audio Workstation</p>
+            </div>
+        </div>
+
+        <!-- Directory Scanner Form -->
+        <div class="flex items-center gap-2 flex-1 max-w-2xl bg-slate-950 border border-studio-border rounded-lg p-2 shadow-inner">
+            <div class="pl-3 text-studio-muted flex items-center gap-2">
+                <i class="fa-solid fa-folder-tree text-cyan-400 text-base"></i>
+                <span class="text-xs md:text-sm font-mono font-semibold hidden sm:inline text-slate-300">Yol:</span>
+            </div>
+            <input type="text" id="dirPathInput" value="/mnt/data/Videos" 
+                   class="bg-transparent border-none text-slate-200 text-sm font-mono focus:outline-none flex-1 px-2 py-1"
+                   placeholder="/mnt/data/Videos">
+            
+            <input type="file" id="directoryPicker" webkitdirectory directory multiple class="hidden">
+            
+            <button id="btnScan" onclick="triggerDirectoryScan()" 
+                    class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-4 py-2 rounded-md text-sm transition flex items-center gap-2 shadow-md">
+                <i class="fa-solid fa-arrows-rotate" id="scanIcon"></i>
+                <span>Klasör Tara / Seç</span>
+            </button>
+        </div>
+
+        <!-- System Stats Badges -->
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+            <div class="bg-slate-950 px-4 py-2 rounded-md border border-studio-border flex items-center gap-2">
+                <i class="fa-solid fa-hard-drive text-cyan-400"></i>
+                <span>Toplam: <strong id="statTotalFiles" class="text-white font-mono text-base">0</strong></span>
+            </div>
+            <div class="bg-slate-950 px-4 py-2 rounded-md border border-studio-border flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-emerald-400"></i>
+                <span>Listede: <strong id="statPlaylistCount" class="text-white font-mono text-base">0</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE CONTENT -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+        <!-- LEFT COLUMN: AUDIO PLAYER & CONTROL PANEL -->
+        <aside class="w-full md:w-[420px] lg:w-[460px] bg-slate-950 border-r border-studio-border flex flex-col shrink-0 p-5 gap-5 overflow-y-auto">
+            
+            <!-- Player Box Card -->
+            <div class="bg-studio-panel border border-studio-border rounded-2xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden">
+                
+                <!-- Track Title & Artist -->
+                <div class="text-center px-1">
+                    <h2 id="playerTitle" class="font-bold text-lg text-slate-100 truncate" title="Henüz Parça Seçilmedi">
+                        Henüz Parça Seçilmedi
+                    </h2>
+                    <p id="playerArtist" class="text-sm text-studio-muted truncate mt-1">
+                        Listeden çift tıklayarak müzik başlatın
+                    </p>
+                </div>
+
+                <!-- DUAL CHANNEL STEREO EQUALIZER SPECTRUM VISUALIZER (Left 5 Bars / Right 5 Bars) -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-studio-border flex flex-col gap-1.5 shadow-inner">
+                    <div class="flex justify-between items-center text-xs font-mono text-studio-muted px-1 font-bold">
+                        <span class="text-cyan-400"><i class="fa-solid fa-volume-off mr-1"></i>SOL (L) - 5 BAR</span>
+                        <span class="text-emerald-400">SAĞ (R) - 5 BAR <i class="fa-solid fa-volume-high ml-1"></i></span>
+                    </div>
+                    <canvas id="equalizerCanvas" class="w-full h-24 rounded-lg bg-slate-900/90 block"></canvas>
+                </div>
+
+                <!-- ALBUM COVER ART DISPLAY -->
+                <div class="relative w-full h-52 bg-slate-950 rounded-xl border border-studio-border flex items-center justify-center overflow-hidden group shadow-inner">
+                    <img id="playerAlbumArt" src="https://placehold.co/500x500/0b0f19/38bdf8?text=Kapak+Resmi" 
+                         alt="Album Cover" 
+                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                         onerror="this.src='https://placehold.co/500x500/0b0f19/38bdf8?text=Kapak+Yok'">
+                    
+                    <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur text-xs font-mono px-3 py-1 rounded-md text-cyan-400 border border-cyan-800 flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-compact-disc text-cyan-400 animate-spin"></i>
+                        <span id="playerMediaTypeTag">SES STREAM MODU</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="flex flex-col gap-2">
+                    <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1"
+                           class="w-full accent-cyan-400 bg-slate-950 h-2.5 rounded-lg cursor-pointer">
+                    <div class="flex justify-between text-xs font-mono text-studio-muted font-bold">
+                        <span id="currentTime">00:00</span>
+                        <span id="totalDuration">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Player Control Buttons -->
+                <div class="flex items-center justify-between px-2 py-1">
+                    <button id="btnShuffle" onclick="toggleShuffle()" 
+                            class="text-slate-400 hover:text-cyan-400 text-lg transition p-2.5 rounded-full hover:bg-slate-800"
+                            title="Karıştır (Rastgele Çalma)">
+                        <i class="fa-solid fa-shuffle" id="shuffleIcon"></i>
+                    </button>
+
+                    <div class="flex items-center gap-5">
+                        <button id="btnPrev" onclick="playPreviousTrack()" class="text-slate-300 hover:text-white text-2xl transition active:scale-90">
+                            <i class="fa-solid fa-backward-step"></i>
+                        </button>
+                        <button id="btnPlayPause" onclick="togglePlayPause()" 
+                                class="w-14 h-14 bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-full flex items-center justify-center text-2xl shadow-xl shadow-cyan-950/80 transition transform active:scale-95">
+                            <i class="fa-solid fa-play ml-1" id="playIcon"></i>
+                        </button>
+                        <button id="btnNext" onclick="playNextTrack()" class="text-slate-300 hover:text-white text-2xl transition active:scale-90">
+                            <i class="fa-solid fa-forward-step"></i>
+                        </button>
+                    </div>
+
+                    <span id="shuffleBadge" class="text-xs font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700 font-bold">
+                        SIRALI
+                    </span>
+                </div>
+
+                <!-- Volume Control Bar -->
+                <div class="flex items-center gap-3 pt-2 border-t border-slate-800 text-slate-400 text-sm">
+                    <i class="fa-solid fa-volume-low text-cyan-400 text-base"></i>
+                    <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.8" 
+                           class="w-full accent-cyan-400 bg-slate-950 h-2 rounded cursor-pointer">
+                    <i class="fa-solid fa-volume-high text-base"></i>
+                </div>
+            </div>
+
+            <audio id="audioElement" crossorigin="anonymous"></audio>
+
+            <!-- Quick Filter Badges -->
+            <div class="bg-studio-panel border border-studio-border rounded-xl p-4 flex flex-col gap-2.5">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Hızlı Klasör Filtresi</span>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="applyCategoryFilter('ALL')" class="text-xs bg-cyan-950 text-cyan-300 border border-cyan-800 px-3 py-1.5 rounded-md font-bold hover:bg-cyan-900 transition">Tümü</button>
+                    <button onclick="applyCategoryFilter('Clips_TRK')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-md font-semibold transition">Clips TRK</button>
+                    <button onclick="applyCategoryFilter('Clips_Yabanci')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-md font-semibold transition">Yabancı</button>
+                    <button onclick="applyCategoryFilter('Music')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-md font-semibold transition">Music</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT COLUMN: INFINITE SCROLL MEDIA TABLE & WEB METADATA SCANNER -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-studio-base">
+            
+            <!-- Playlist & Action Navigation Bar -->
+            <div class="bg-slate-900 border-b border-studio-border px-5 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-studio-border">
+                    <button id="tabAllFiles" onclick="switchTab('all')" 
+                            class="px-4 py-2 rounded-lg text-sm font-bold bg-cyan-600 text-white transition shadow">
+                        <i class="fa-solid fa-folder-open mr-2"></i>Taranan Tüm Dosyalar
+                    </button>
+                    <button id="tabPlaylist" onclick="switchTab('playlist')" 
+                            class="px-4 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-list-ul mr-2"></i>Çalma Listesi (<span id="playlistBadgeCount">0</span>)
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="toggleSelectAll()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm px-3.5 py-2 rounded-lg border border-studio-border font-semibold flex items-center gap-2">
+                        <i class="fa-regular fa-square-check"></i> Seç/Kaldır
+                    </button>
+                    <button onclick="addSelectedToPlaylist()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 text-sm px-3.5 py-2 rounded-lg border border-studio-border font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Listeye Ekle
+                    </button>
+                    <button onclick="savePlaylistToFile()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 text-sm px-3.5 py-2 rounded-lg border border-studio-border font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Listeyi Kaydet
+                    </button>
+                    <label class="bg-slate-800 hover:bg-slate-700 text-amber-400 text-sm px-3.5 py-2 rounded-lg border border-studio-border font-semibold flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-upload"></i> Liste Yükle
+                        <input type="file" accept=".json,.xspf" onchange="loadPlaylistFromFile(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- SEARCH BAR (Real-time Filtering, Playback Uninterrupted) -->
+            <div class="bg-slate-900/80 px-5 py-2.5 border-b border-studio-border flex items-center justify-between text-sm text-slate-300 shrink-0">
+                <div class="flex items-center gap-3 flex-1 max-w-xl">
+                    <i class="fa-solid fa-magnifying-glass text-cyan-400 text-base"></i>
+                    <input type="text" id="tableSearchInput" onkeyup="onSearchInputChanged()" 
+                           placeholder="Aktif listede arama yapın (ör. İstiklal, mp4, clips, Neşet Ertaş)..." 
+                           class="bg-slate-950 border border-studio-border text-slate-200 px-3.5 py-1.5 rounded-lg text-sm w-full focus:outline-none focus:border-cyan-500 font-medium">
+                </div>
+                
+                <div class="flex items-center gap-4 text-xs md:text-sm font-mono text-slate-400">
+                    <span id="recordCountInfo">0 Kayıt Listeleniyor</span>
+                </div>
+            </div>
+
+            <!-- MEDIA TABLE AREA (INFINITE SCROLL - Continuous Vertical Scroll Layout) -->
+            <div class="flex-1 overflow-y-auto border-b border-studio-border bg-slate-950 relative">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-slate-900 text-slate-300 font-bold sticky top-0 z-10 border-b border-studio-border shadow">
+                        <tr>
+                            <th class="p-3.5 w-12 text-center">
+                                <input type="checkbox" id="masterCheckbox" onclick="toggleSelectAll(this.checked)" class="accent-cyan-500 w-4 h-4">
+                            </th>
+                            <th class="p-3.5 w-12 text-center">#</th>
+                            <th class="p-3.5 th-sortable" onclick="sortTableBy('title')">
+                                Başlık / Dosya Adı <i class="fa-solid fa-sort ml-1 text-xs text-slate-500"></i>
+                            </th>
+                            <th class="p-3.5 th-sortable" onclick="sortTableBy('parent')">
+                                Klasör Yolu <i class="fa-solid fa-sort ml-1 text-xs text-slate-500"></i>
+                            </th>
+                            <th class="p-3.5 th-sortable" onclick="sortTableBy('duration')">
+                                Süre <i class="fa-solid fa-sort ml-1 text-xs text-slate-500"></i>
+                            </th>
+                            <th class="p-3.5 th-sortable" onclick="sortTableBy('size')">
+                                Boyut <i class="fa-solid fa-sort ml-1 text-xs text-slate-500"></i>
+                            </th>
+                            <th class="p-3.5 th-sortable" onclick="sortTableBy('format')">
+                                Format <i class="fa-solid fa-sort ml-1 text-xs text-slate-500"></i>
+                            </th>
+                            <th class="p-3.5">Bitrate / Codec</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mediaTableBody" class="divide-y divide-slate-800/80 font-mono text-sm">
+                        <!-- Dynamic Rows Injected Here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BOTTOM PANEL: METADATA EDITOR & WEB SCRAPER API -->
+            <div class="h-80 bg-slate-900 flex flex-col p-4 shrink-0 border-t border-studio-border">
+                <div class="flex items-center justify-between pb-2 mb-3 border-b border-studio-border">
+                    <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm uppercase tracking-wider">
+                        <i class="fa-solid fa-sliders text-lg"></i>
+                        <span>Seçili Dosya Metadata & İnternet Tarayıcısı</span>
+                    </div>
+                    <div id="editorFileDetails" class="text-xs md:text-sm text-studio-muted font-mono truncate max-w-xl">
+                        Dosya seçilmedi
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 overflow-y-auto">
+                    <!-- Column 1 -->
+                    <div class="flex flex-col gap-2.5">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Eser / Parça Adı (Title)</label>
+                            <input type="text" id="editTitle" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Sanatçı (Artist)</label>
+                            <input type="text" id="editArtist" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div class="flex flex-col gap-2.5">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Albüm (Album)</label>
+                            <input type="text" id="editAlbum" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Tür / Kategori (Genre)</label>
+                            <input type="text" id="editGenre" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Column 3 -->
+                    <div class="flex flex-col gap-2.5">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1 font-semibold">Parça No</label>
+                                <input type="text" id="editTrackNo" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1 font-semibold">Yıl</label>
+                                <input type="text" id="editYear" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Kapak URL / Notlar</label>
+                            <input type="text" id="editComment" class="w-full bg-slate-950 border border-studio-border rounded-md px-3 py-1.5 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Column 4: Web Scraping & Auto-Fetch Buttons -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-studio-border flex flex-col justify-between gap-2.5">
+                        <div class="text-xs font-mono text-slate-400 space-y-1">
+                            <div>Format: <span id="metaCodec" class="text-cyan-400 font-bold">MP4 / AAC</span></div>
+                            <div>Bitrate: <span id="metaBitrate" class="text-slate-200">320 kbps</span></div>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <!-- Fetch Online Single Metadata -->
+                            <button onclick="fetchOnlineMetadataForSelected()" 
+                                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 shadow">
+                                <i class="fa-solid fa-globe"></i> İnternetten Bul & Güncelle
+                            </button>
+
+                            <!-- Batch Fetch All Files -->
+                            <button onclick="batchFetchOnlineMetadata()" 
+                                    class="w-full bg-purple-700 hover:bg-purple-600 text-white py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 shadow">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Tüm Parçaları Tara
+                            </button>
+
+                            <button onclick="saveCurrentMetadata()" 
+                                    class="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 shadow">
+                                <i class="fa-solid fa-floppy-disk"></i> Metadata Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 bg-slate-800 text-white border border-cyan-500 px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check text-cyan-400 text-xl" id="toastIcon"></i>
+        <span id="toastMessage" class="text-sm font-bold">İşlem gerçekleştirildi.</span>
+    </div>
+
+    <!-- SCRIPT PIPELINE & AUDIO SPECTRUM CANVAS ENGINE -->
+    <script>
+        // Global State Variables
+        let scannedDatabase = [];
+        let playlistDatabase = [];
+        let filteredViewData = []; // Currently filtered or active search view list
+        let activeTab = 'all'; 
+        let selectedIndex = -1;
+        let playingItem = null; // Reference object to currently playing item
+        let isShuffle = false;
+        let sortDirection = { column: null, asc: true };
+
+        // Web Audio API & Stereo Visualizer Variables
+        let audioCtx, audioSource, splitter, analyserL, analyserR;
+        let isAudioContextSetup = false;
+
+        // Mock Files Initialization
+        const initialMockFiles = [
+            { id: 1, name: "2013 Model İstiklal Marşı - İşte Yeni İstiklal Marşı.mp4", parent: "/mnt/data/Videos", size: "18.0 MB", duration: "03:45", format: "MP4 Video", bitrate: "192 kbps (AAC)", artist: "Milli Marş", title: "İstiklal Marşı", album: "Resmi", genre: "Milli", year: "2013", trackNo: "1", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/38bdf8?text=Istiklal+Marsi", selected: false, fileRef: null },
+            { id: 2, name: "Ebediyen Çalışmak İstemeyenler İçin 3 Asli Satın Alma - Yatırımcı Zihniyeti.mp4", parent: "/mnt/data/Videos", size: "423.7 MB", duration: "42:10", format: "MP4 Video", bitrate: "320 kbps (AAC)", artist: "Finans Özgürlük", title: "Yatırımcı Zihniyeti", album: "Yatırım 101", genre: "Eğitim", year: "2026", trackNo: "2", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/06b6d4?text=Yatirimci+Zihniyeti", selected: false, fileRef: null },
+            { id: 3, name: "Öyle net düşün ki insanlar seni dahi sansın (PART 1_3) - Dr. Ayşegül Tonyalı.mp4", parent: "/mnt/data/Videos", size: "251.3 MB", duration: "28:15", format: "MP4 Video", bitrate: "256 kbps (AAC)", artist: "Dr. Ayşegül Tonyalı", title: "Öyle Net Düşün ki", album: "Zihin Yapısı", genre: "Kişisel Gelişim", year: "2026", trackNo: "3", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/38bdf8?text=Zihin+Yapisi", selected: false, fileRef: null },
+            { id: 4, name: "pfSense Firewall - pfSense Administration Full Course.mp4", parent: "/mnt/data/Videos", size: "401.2 MB", duration: "03:14:20", format: "MP4 Video", bitrate: "192 kbps (AAC)", artist: "Network Academy", title: "pfSense Full Course", album: "SysAdmin", genre: "Computer", year: "2024", trackNo: "1", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/06b6d4?text=pfSense+Course", selected: false, fileRef: null },
+            { id: 5, name: "Dombra_Remix_Enstrumantal_Clips.mp4", parent: "/mnt/data/Videos/Clips_TRK", size: "45.2 MB", duration: "04:12", format: "MP4 Video", bitrate: "320 kbps (AAC)", artist: "Anonim", title: "Dombra Remix", album: "Türk Klip", genre: "Clips_TRK", year: "2025", trackNo: "1", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/38bdf8?text=Dombra+Remix", selected: false, fileRef: null },
+            { id: 6, name: "Neşet_Ertaş_Yalan_Dünya_Remastered.mp3", parent: "/mnt/data/Videos/Music", size: "14.2 MB", duration: "05:10", format: "MP3 Audio", bitrate: "320 kbps (Audio)", artist: "Neşet Ertaş", title: "Yalan Dünya", album: "Bozkırın Tezenesi", genre: "Music", year: "2020", trackNo: "1", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/06b6d4?text=Neset+Ertas", selected: false, fileRef: null },
+            { id: 7, name: "Chillhop_LoFi_Beats_Study_Session.mp4", parent: "/mnt/data/Videos/Clips_Yabanci", size: "120.4 MB", duration: "18:45", format: "MP4 Video", bitrate: "320 kbps (AAC)", artist: "LoFi Chill", title: "Chillhop Beats", album: "Chillhop", genre: "Clips_Yabanci", year: "2026", trackNo: "1", comment: "", coverUrl: "https://placehold.co/500x500/0b0f19/06b6d4?text=LoFi+Beats", selected: false, fileRef: null }
+        ];
+
+        for(let i = 8; i <= 25; i++) {
+            initialMockFiles.push({
+                id: i,
+                name: `Arşiv_Klip_Parça_${i}.mp4`,
+                parent: i % 2 === 0 ? "/mnt/data/Videos/Clips_TRK" : "/mnt/data/Videos/Clips_Yabanci",
+                size: `${(Math.random() * 50 + 10).toFixed(1)} MB`,
+                duration: `0${Math.floor(Math.random()*4+2)}:${Math.floor(Math.random()*50+10)}`,
+                format: i % 3 === 0 ? "MP3 Audio" : "MP4 Video",
+                bitrate: "320 kbps (AAC)",
+                artist: `Sanatçı ${i}`,
+                title: `Klip Parça #${i}`,
+                album: "Koleksiyon",
+                genre: i % 2 === 0 ? "Clips_TRK" : "Clips_Yabanci",
+                year: "2026",
+                trackNo: `${i}`,
+                comment: "",
+                coverUrl: `https://placehold.co/500x500/0b0f19/38bdf8?text=Klip+Track+${i}`,
+                selected: false,
+                fileRef: null
+            });
+        }
+
+        // DOM Handles
+        const audio = document.getElementById('audioElement');
+        const mediaTableBody = document.getElementById('mediaTableBody');
+        const playerTitle = document.getElementById('playerTitle');
+        const playerArtist = document.getElementById('playerArtist');
+        const playerAlbumArt = document.getElementById('playerAlbumArt');
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const playIcon = document.getElementById('playIcon');
+        const seekSlider = document.getElementById('seekSlider');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalDurationEl = document.getElementById('totalDuration');
+
+        // Form Handles
+        const editTitle = document.getElementById('editTitle');
+        const editArtist = document.getElementById('editArtist');
+        const editAlbum = document.getElementById('editAlbum');
+        const editGenre = document.getElementById('editGenre');
+        const editTrackNo = document.getElementById('editTrackNo');
+        const editYear = document.getElementById('editYear');
+        const editComment = document.getElementById('editComment');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedPlaylistLocalStorage();
+            scannedDatabase = [...initialMockFiles];
+            updateFilteredViewData();
+            updateStats();
+            renderTable();
+            setupAudioEvents();
+            initStereoEqualizerCanvas();
+        });
+
+        // Web Directory Scanner API & Embedded ID3 Picture Reader Simulation
+        async function triggerDirectoryScan() {
+            const scanIcon = document.getElementById('scanIcon');
+            scanIcon.classList.add('animate-spin');
+
+            if ('showDirectoryPicker' in window) {
+                try {
+                    const dirHandle = await window.showDirectoryPicker();
+                    document.getElementById('dirPathInput').value = `/mnt/data/Videos/${dirHandle.name}`;
+                    
+                    let scannedFiles = [];
+                    let count = 1;
+
+                    for await (const entry of dirHandle.values()) {
+                        if (entry.kind === 'file' && (entry.name.endsWith('.mp4') || entry.name.endsWith('.mp3') || entry.name.endsWith('.m4a') || entry.name.endsWith('.flac'))) {
+                            const fileData = await entry.getFile();
+                            const isAudioOnly = entry.name.endsWith('.mp3') || entry.name.endsWith('.flac') || entry.name.endsWith('.m4a');
+                            
+                            scannedFiles.push({
+                                id: Date.now() + count,
+                                name: entry.name,
+                                parent: `/mnt/data/Videos/${dirHandle.name}`,
+                                size: `${(fileData.size / (1024 * 1024)).toFixed(1)} MB`,
+                                duration: "03:30",
+                                format: isAudioOnly ? "Audio Single (Resimli)" : "MP4 Video",
+                                bitrate: "320 kbps (AAC)",
+                                artist: "Yerel Sanatçı",
+                                title: entry.name.replace(/\.[^/.]+$/, ""),
+                                album: dirHandle.name,
+                                genre: "Yerel Medya",
+                                year: "2026",
+                                trackNo: `${count}`,
+                                comment: "",
+                                coverUrl: `https://placehold.co/500x500/0b0f19/38bdf8?text=${encodeURIComponent(entry.name.substring(0, 12))}`,
+                                selected: false,
+                                fileRef: URL.createObjectURL(fileData)
+                            });
+                            count++;
+                        }
+                    }
+
+                    if (scannedFiles.length > 0) {
+                        scannedDatabase = scannedFiles;
+                        showToast(`${scannedFiles.length} medya dosyası tarandı.`);
+                    }
+                } catch (err) {}
+            } else {
+                document.getElementById('directoryPicker').click();
+            }
+
+            setTimeout(() => {
+                scanIcon.classList.remove('animate-spin');
+                updateFilteredViewData();
+                renderTable();
+                updateStats();
+            }, 600);
+        }
+
+        // Update Filtered View Dataset based on Search Query
+        function updateFilteredViewData() {
+            const baseDataset = activeTab === 'all' ? scannedDatabase : playlistDatabase;
+            const query = document.getElementById('tableSearchInput').value.toLowerCase().trim();
+
+            if (!query) {
+                filteredViewData = [...baseDataset];
+            } else {
+                filteredViewData = baseDataset.filter(item => {
+                    return (item.title && item.title.toLowerCase().includes(query)) ||
+                           (item.name && item.name.toLowerCase().includes(query)) ||
+                           (item.artist && item.artist.toLowerCase().includes(query)) ||
+                           (item.album && item.album.toLowerCase().includes(query)) ||
+                           (item.genre && item.genre.toLowerCase().includes(query));
+                });
+            }
+
+            document.getElementById('recordCountInfo').innerText = `${filteredViewData.length} Kayıt Listeleniyor`;
+        }
+
+        // Live Search Input Event - Filter Table without interrupting Audio
+        function onSearchInputChanged() {
+            updateFilteredViewData();
+            renderTable();
+        }
+
+        // Sort Table By Header Column A-Z / Z-A
+        function sortTableBy(columnKey) {
+            if (sortDirection.column === columnKey) {
+                sortDirection.asc = !sortDirection.asc;
+            } else {
+                sortDirection.column = columnKey;
+                sortDirection.asc = true;
+            }
+
+            filteredViewData.sort((a, b) => {
+                let valA = (a[columnKey] || '').toString().toLowerCase();
+                let valB = (b[columnKey] || '').toString().toLowerCase();
+                if (valA < valB) return sortDirection.asc ? -1 : 1;
+                if (valA > valB) return sortDirection.asc ? 1 : -1;
+                return 0;
+            });
+
+            renderTable();
+            showToast(`Sıralandı: ${columnKey.toUpperCase()} (${sortDirection.asc ? 'A-Z' : 'Z-A'})`);
+        }
+
+        // Render Infinite Scroll Table
+        function renderTable() {
+            mediaTableBody.innerHTML = '';
+
+            if (filteredViewData.length === 0) {
+                mediaTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-16 text-slate-500 font-sans">
+                            <i class="fa-solid fa-folder-open text-5xl mb-3 block"></i>
+                            Gösterilecek medya bulunamadı veya arama sonucu boş.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            filteredViewData.forEach((item, idx) => {
+                const isPlaying = playingItem && playingItem.id === item.id;
+                const isSelected = selectedIndex === idx;
+
+                const tr = document.createElement('tr');
+                tr.className = `cursor-pointer transition-colors hover:bg-slate-800/90 ${
+                    isPlaying ? 'bg-cyan-950/70 text-cyan-300 font-bold border-l-4 border-cyan-400' : 
+                    isSelected ? 'bg-slate-800 text-slate-100' : 'text-slate-300'
+                }`;
+
+                tr.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT') selectRow(idx);
+                };
+                tr.ondblclick = () => playTrackFromFilteredView(idx);
+
+                tr.innerHTML = `
+                    <td class="p-3.5 text-center">
+                        <input type="checkbox" ${item.selected ? 'checked' : ''} 
+                               onclick="toggleRowCheckbox(${idx}, event)" class="accent-cyan-500 w-4 h-4">
+                    </td>
+                    <td class="p-3.5 text-center text-slate-400 font-bold">${idx + 1}</td>
+                    <td class="p-3.5 font-medium text-slate-100 truncate max-w-xs flex items-center gap-2.5">
+                        ${isPlaying ? '<i class="fa-solid fa-compact-disc text-cyan-400 animate-spin text-lg"></i>' : '<i class="fa-regular fa-file-video text-slate-400 text-base"></i>'}
+                        <span title="${item.name}">${item.title || item.name}</span>
+                    </td>
+                    <td class="p-3.5 text-slate-400 font-mono text-xs truncate max-w-xs" title="${item.parent}">${item.parent}</td>
+                    <td class="p-3.5 text-slate-200 font-mono">${item.duration}</td>
+                    <td class="p-3.5 text-slate-400 font-mono">${item.size}</td>
+                    <td class="p-3.5">
+                        <span class="bg-slate-900 border border-slate-700 text-cyan-300 px-2.5 py-0.5 rounded text-xs font-bold">${item.format}</span>
+                    </td>
+                    <td class="p-3.5 text-slate-400 text-xs">${item.bitrate}</td>
+                `;
+                mediaTableBody.appendChild(tr);
+            });
+        }
+
+        // Row Selection
+        function selectRow(index) {
+            selectedIndex = index;
+            const item = filteredViewData[index];
+            if (!item) return;
+
+            editTitle.value = item.title || item.name;
+            editArtist.value = item.artist || '';
+            editAlbum.value = item.album || '';
+            editGenre.value = item.genre || '';
+            editTrackNo.value = item.trackNo || '1';
+            editYear.value = item.year || '2026';
+            editComment.value = item.comment || item.coverUrl || '';
+
+            document.getElementById('editorFileDetails').innerText = `${item.parent}/${item.name}`;
+            renderTable();
+        }
+
+        // Audio Playback Engine
+        function playTrackFromFilteredView(index) {
+            setupStereoAudioContextOnce();
+            const track = filteredViewData[index];
+            if (!track) return;
+
+            playingItem = track;
+            selectRow(index);
+
+            playerTitle.innerText = track.title || track.name;
+            playerArtist.innerText = `${track.artist || 'Bilinmeyen Sanatçı'} - ${track.album || 'Single'}`;
+            playerAlbumArt.src = track.coverUrl || "https://placehold.co/500x500/0b0f19/38bdf8?text=Kapak+Yok";
+            document.getElementById('playerMediaTypeTag').innerText = track.format.toUpperCase();
+
+            if (track.fileRef) {
+                audio.src = track.fileRef;
+            } else {
+                audio.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+            }
+
+            audio.play().then(() => {
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }).catch(() => {});
+
+            playIcon.className = "fa-solid fa-pause";
+            showToast(`Çalınıyor: ${track.title || track.name}`);
+            renderTable();
+        }
+
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            const btnShuffle = document.getElementById('btnShuffle');
+            const shuffleBadge = document.getElementById('shuffleBadge');
+
+            if (isShuffle) {
+                btnShuffle.className = "text-cyan-400 text-lg transition p-2.5 rounded-full bg-cyan-950/80 border border-cyan-800 shadow";
+                shuffleBadge.innerText = "KARIŞTIR";
+                shuffleBadge.className = "text-xs font-mono px-2.5 py-1 rounded-md bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold";
+                showToast("Karıştırma (Shuffle) açıldı.");
+            } else {
+                btnShuffle.className = "text-slate-400 hover:text-cyan-400 text-lg transition p-2.5 rounded-full hover:bg-slate-800";
+                shuffleBadge.innerText = "SIRALI";
+                shuffleBadge.className = "text-xs font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700 font-bold";
+                showToast("Sıralı çalma modu aktif.");
+            }
+        }
+
+        function playNextTrack() {
+            if (filteredViewData.length === 0) return;
+
+            let currentIdx = filteredViewData.findIndex(i => playingItem && i.id === playingItem.id);
+            let nextIndex;
+
+            if (isShuffle) {
+                nextIndex = Math.floor(Math.random() * filteredViewData.length);
+            } else {
+                nextIndex = currentIdx + 1;
+                if (nextIndex >= filteredViewData.length || nextIndex < 0) nextIndex = 0;
+            }
+            playTrackFromFilteredView(nextIndex);
+        }
+
+        function playPreviousTrack() {
+            if (filteredViewData.length === 0) return;
+
+            let currentIdx = filteredViewData.findIndex(i => playingItem && i.id === playingItem.id);
+            let prevIndex = currentIdx - 1;
+            if (prevIndex < 0) prevIndex = filteredViewData.length - 1;
+            playTrackFromFilteredView(prevIndex);
+        }
+
+        function togglePlayPause() {
+            if (!playingItem && filteredViewData.length > 0) {
+                playTrackFromFilteredView(0);
+                return;
+            }
+            if (audio.paused) {
+                audio.play();
+                playIcon.className = "fa-solid fa-pause";
+            } else {
+                audio.pause();
+                playIcon.className = "fa-solid fa-play ml-1";
+            }
+        }
+
+        // Web Scraping / Online Metadata Fetch Engine (CORS-Proxy Fallback + iTunes API)
+        async function fetchOnlineMetadataForSelected() {
+            if (selectedIndex === -1) {
+                showToast("Lütfen önce bir dosya seçin.", "warning");
+                return;
+            }
+
+            const item = filteredViewData[selectedIndex];
+            let cleanTerm = (item.title || item.name).replace(/\.[^/.]+$/, "")
+                                                     .replace(/\(.*?\)/g, '')
+                                                     .replace(/\[.*?\]/g, '')
+                                                     .replace(/1080p|h264|youtube|mp4|mp3/gi, '')
+                                                     .trim();
+
+            showToast(`Aranıyor: ${cleanTerm}...`);
+
+            const directApiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanTerm)}&media=music&limit=1`;
+            const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directApiUrl)}`;
+
+            try {
+                let response;
+                try {
+                    response = await fetch(directApiUrl);
+                } catch(e) {
+                    response = await fetch(corsProxyUrl);
+                }
+
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    const res = data.results[0];
+                    item.title = res.trackName || item.title;
+                    item.artist = res.artistName || item.artist;
+                    item.album = res.collectionName || item.album;
+                    item.genre = res.primaryGenreName || item.genre;
+                    item.year = res.releaseDate ? res.releaseDate.substring(0, 4) : item.year;
+                    item.coverUrl = res.artworkUrl100 ? res.artworkUrl100.replace('100x100bb', '500x500bb') : item.coverUrl;
+
+                    selectRow(selectedIndex);
+                    if (playingItem && playingItem.id === item.id) {
+                        playerAlbumArt.src = item.coverUrl;
+                    }
+                    showToast(`Metadata güncellendi: ${item.title}`);
+                } else {
+                    showToast("İnternette eşleşen bilgi bulunamadı.", "warning");
+                }
+            } catch (err) {
+                showToast("Ağ hatası: Metadata çekilemedi.", "error");
+            }
+        }
+
+        // Batch Fetch Metadata for All Items
+        async function batchFetchOnlineMetadata() {
+            if (filteredViewData.length === 0) return;
+
+            showToast("Listenizdeki parçalar için internet taraması başlatıldı...");
+            let updatedCount = 0;
+
+            for (let i = 0; i < Math.min(filteredViewData.length, 10); i++) {
+                const item = filteredViewData[i];
+                let cleanTerm = (item.title || item.name).replace(/\.[^/.]+$/, "").replace(/1080p|h264|youtube/gi, '').trim();
+                try {
+                    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleanTerm)}&media=music&limit=1`);
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        const r = data.results[0];
+                        item.artist = r.artistName || item.artist;
+                        item.album = r.collectionName || item.album;
+                        item.coverUrl = r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '500x500bb') : item.coverUrl;
+                        updatedCount++;
+                    }
+                } catch(e) {}
+            }
+
+            renderTable();
+            showToast(`${updatedCount} parçanın metadataları güncellendi.`);
+        }
+
+        // Web Audio API Stereo Splitter Engine (Left 5 / Right 5 Channel Equalizer)
+        function setupStereoAudioContextOnce() {
+            if (isAudioContextSetup) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioCtx();
+
+                audioSource = audioCtx.createMediaElementSource(audio);
+                splitter = audioCtx.createChannelSplitter(2);
+
+                analyserL = audioCtx.createAnalyser();
+                analyserR = audioCtx.createAnalyser();
+
+                analyserL.fftSize = 32;
+                analyserR.fftSize = 32;
+
+                audioSource.connect(splitter);
+                splitter.connect(analyserL, 0); // Left Channel -> Analyser 1
+                splitter.connect(analyserR, 1); // Right Channel -> Analyser 2
+
+                audioSource.connect(audioCtx.destination);
+                isAudioContextSetup = true;
+            } catch (e) {}
+        }
+
+        function initStereoEqualizerCanvas() {
+            const canvas = document.getElementById('equalizerCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function drawStereoSpectrum() {
+                requestAnimationFrame(drawStereoSpectrum);
+
+                const width = canvas.width = canvas.clientWidth;
+                const height = canvas.height = canvas.clientHeight;
+
+                ctx.clearRect(0, 0, width, height);
+
+                const dataL = new Uint8Array(16);
+                const dataR = new Uint8Array(16);
+
+                if (analyserL && analyserR && !audio.paused) {
+                    analyserL.getByteFrequencyData(dataL);
+                    analyserR.getByteFrequencyData(dataR);
+                }
+
+                const totalBars = 10; // 5 Left (L), 5 Right (R)
+                const barGap = 8;
+                const barWidth = (width - (totalBars * barGap)) / totalBars;
+                const totalSegments = 10; // 10 Vertical LED Levels
+
+                for (let i = 0; i < totalBars; i++) {
+                    const isLeftChannel = i < 5;
+                    const rawVal = isLeftChannel 
+                        ? (dataL[i * 2] || (audio.paused ? 0 : Math.floor(Math.random() * 70 + 20)))
+                        : (dataR[(i - 5) * 2] || (audio.paused ? 0 : Math.floor(Math.random() * 70 + 20)));
+
+                    const activeSegments = Math.round((rawVal / 255) * totalSegments);
+                    const x = i * (barWidth + barGap) + barGap / 2;
+
+                    for (let seg = 0; seg < totalSegments; seg++) {
+                        const segHeight = (height - (totalSegments * 2)) / totalSegments;
+                        const y = height - ((seg + 1) * (segHeight + 2));
+
+                        if (seg < activeSegments) {
+                            if (seg > 7) ctx.fillStyle = '#f43f5e'; // Top Peak Red
+                            else if (seg > 5) ctx.fillStyle = '#f59e0b'; // Mid Orange
+                            else ctx.fillStyle = isLeftChannel ? '#06b6d4' : '#10b981'; // Left Cyan / Right Emerald
+                        } else {
+                            ctx.fillStyle = '#1e293b'; // LED Off state
+                        }
+
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, barWidth, segHeight, 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            drawStereoSpectrum();
+        }
+
+        // Setup Audio Player Event Listeners
+        function setupAudioEvents() {
+            audio.addEventListener('timeupdate', () => {
+                if (audio.duration) {
+                    seekSlider.value = (audio.currentTime / audio.duration) * 100;
+                    currentTimeEl.innerText = formatTime(audio.currentTime);
+                    totalDurationEl.innerText = formatTime(audio.duration);
+                }
+            });
+
+            audio.addEventListener('ended', () => playNextTrack());
+
+            seekSlider.addEventListener('input', () => {
+                if (audio.duration) audio.currentTime = (seekSlider.value / 100) * audio.duration;
+            });
+
+            volumeSlider.addEventListener('input', () => {
+                audio.volume = volumeSlider.value;
+            });
+        }
+
+        // Save Form Metadata
+        function saveCurrentMetadata() {
+            if (selectedIndex === -1) return;
+            const item = filteredViewData[selectedIndex];
+
+            item.title = editTitle.value;
+            item.artist = editArtist.value;
+            item.album = editAlbum.value;
+            item.genre = editGenre.value;
+            item.trackNo = editTrackNo.value;
+            item.year = editYear.value;
+            item.comment = editComment.value;
+
+            showToast(`Metadata kaydedildi: ${item.title}`);
+            renderTable();
+        }
+
+        function toggleRowCheckbox(index, e) {
+            e.stopPropagation();
+            filteredViewData[index].selected = !filteredViewData[index].selected;
+            updateStats();
+        }
+
+        function toggleSelectAll(forceState = null) {
+            const newState = forceState !== null ? forceState : !filteredViewData.every(i => i.selected);
+            filteredViewData.forEach(i => i.selected = newState);
+            renderTable();
+            updateStats();
+        }
+
+        function addSelectedToPlaylist() {
+            const selectedItems = scannedDatabase.filter(i => i.selected);
+            if (selectedItems.length === 0) {
+                showToast("Eklemek için parçalara tik koyun.", "warning");
+                return;
+            }
+            selectedItems.forEach(item => {
+                if (!playlistDatabase.some(p => p.id === item.id)) playlistDatabase.push({ ...item });
+            });
+            savePlaylistLocalStorage();
+            updateStats();
+            showToast(`${selectedItems.length} parça çalma listesine eklendi.`);
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('tabAllFiles').className = tab === 'all' 
+                ? "px-4 py-2 rounded-lg text-sm font-bold bg-cyan-600 text-white transition shadow"
+                : "px-4 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-white transition";
+            document.getElementById('tabPlaylist').className = tab === 'playlist'
+                ? "px-4 py-2 rounded-lg text-sm font-bold bg-cyan-600 text-white transition shadow"
+                : "px-4 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-white transition";
+            
+            updateFilteredViewData();
+            renderTable();
+        }
+
+        function savePlaylistToFile() {
+            if (playlistDatabase.length === 0) return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(playlistDatabase, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "TR-MüzikListe.json");
+            dlAnchor.click();
+            showToast("Çalma listesi indirildi.");
+        }
+
+        function loadPlaylistFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loaded = JSON.parse(e.target.result);
+                    if (Array.isArray(loaded)) {
+                        playlistDatabase = loaded;
+                        savePlaylistLocalStorage();
+                        updateStats();
+                        switchTab('playlist');
+                        showToast(`Çalma listesi yüklendi (${loaded.length} parça).`);
+                    }
+                } catch(e) {}
+            };
+            reader.readAsText(file);
+        }
+
+        function applyCategoryFilter(cat) {
+            document.getElementById('tableSearchInput').value = cat === 'ALL' ? '' : cat;
+            onSearchInputChanged();
+        }
+
+        function updateStats() {
+            document.getElementById('statTotalFiles').innerText = scannedDatabase.length;
+            document.getElementById('statPlaylistCount').innerText = playlistDatabase.length;
+            document.getElementById('playlistBadgeCount').innerText = playlistDatabase.length;
+        }
+
+        function savePlaylistLocalStorage() {
+            localStorage.setItem('muzik_manager_playlist', JSON.stringify(playlistDatabase));
+        }
+
+        function loadSavedPlaylistLocalStorage() {
+            const saved = localStorage.getItem('muzik_manager_playlist');
+            if (saved) {
+                try { playlistDatabase = JSON.parse(saved); } catch(e) {}
+            }
+        }
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min < 10 ? '0' : ''}${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
+        }
+    </script>
+</body>
+</html>
