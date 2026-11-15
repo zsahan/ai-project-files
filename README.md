@@ -11,7 +11,7 @@ Her bir uygulama kendi klasörü içerisinde yer almaktadır ve doğrudan taray�
 
 Uygulamaları tarayıcınızda hemen denemek için aşağıdaki bağlantılara tıklayabilirsiniz:
 
-* **[CPU vs GPU vs AI Model](<href="https://zsahan.github.io/ai-project-files/cpu-gpu-ai-karsilastirma/" target="_blank" rel="noopener noreferrer">)** - *CPU vs GPU vs AI Model Karşılaştırması*
+* <a href="https://zsahan.github.io/ai-project-files/cpu-gpu-ai-karsilastirma/" target="_blank" rel="noopener noreferrer"><strong>CPU vs GPU vs AI Model</strong></a> - <em>CPU vs GPU vs AI Model Karşılaştırması</em>
 * **[CPU Teorik compute](https://zsahan.github.io/ai-project-files/cpu-compute-hesaplama/)** - *CPU Teorik olarak saniyedeki işlem hesaplaması*
 
 ## 🛠️ Kullanılan Teknolojiler
