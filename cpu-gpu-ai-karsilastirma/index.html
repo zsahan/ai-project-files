@@ -1,1 +1,578 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU vs GPU vs AI Model | SG Dersi</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --cpu: #34d399;
+            --gpu: #a78bfa;
+            --ai: #f472b6;
+        }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 16px;
+            line-height: 1.45;
+        }
+
+        .container { max-width: 1280px; margin: 0 auto; }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .header p { color: var(--muted); font-size: 0.9rem; }
+
+        .panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        @media (max-width: 980px) {
+            .panels { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.28);
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-title.cpu { color: var(--cpu); }
+        .card-title.gpu { color: var(--gpu); }
+        .card-title.ai  { color: var(--ai); }
+
+        .form-group { margin-bottom: 12px; }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 11px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            color: var(--text);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"]:focus,
+        select:focus { border-color: var(--accent); }
+
+        .bit-group { display: flex; gap: 8px; }
+
+        .bit-option { flex: 1; position: relative; }
+
+        .bit-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .bit-option label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 9px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text);
+            margin: 0;
+            transition: all 0.2s;
+        }
+
+        .bit-option input:checked + label {
+            border-color: var(--cpu);
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--cpu);
+            font-weight: 600;
+        }
+
+        .ipc-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ipc-row input { width: 80px; text-align: center; }
+
+        .ipc-hint { font-size: 0.75rem; color: var(--muted); }
+
+        .info-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .info-box strong { color: var(--text); }
+
+        .results {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.3fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 980px) {
+            .results { grid-template-columns: 1fr; }
+        }
+
+        .result-box {
+            padding: 14px;
+            border-radius: 11px;
+            text-align: center;
+        }
+
+        .result-box.cpu-box {
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(52, 211, 153, 0.04));
+            border: 1px solid rgba(52, 211, 153, 0.28);
+        }
+
+        .result-box.gpu-box {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(167, 139, 250, 0.04));
+            border: 1px solid rgba(167, 139, 250, 0.28);
+        }
+
+        .result-box.ai-box {
+            background: linear-gradient(135deg, rgba(244, 114, 182, 0.12), rgba(244, 114, 182, 0.04));
+            border: 1px solid rgba(244, 114, 182, 0.28);
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            word-break: break-all;
+        }
+
+        .result-box.cpu-box .result-value { color: var(--cpu); }
+        .result-box.gpu-box .result-value { color: var(--gpu); }
+        .result-box.ai-box  .result-value { color: var(--ai); }
+
+        .result-unit {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .ai-dual {
+            display: flex;
+            justify-content: center;
+            gap: 22px;
+            margin-top: 8px;
+        }
+
+        .ai-dual span {
+            display: block;
+        }
+
+        .ai-dual .gpu-speed,
+        .ai-dual .cpu-speed {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+        }
+
+        .ai-dual .gpu-speed { color: var(--gpu); }
+        .ai-dual .cpu-speed { color: var(--cpu); }
+
+        .compare-note {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 6px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .compare-note strong { color: var(--accent); }
+
+        .formula-note {
+            margin-top: 14px;
+            font-size: 0.76rem;
+            color: var(--muted);
+            text-align: center;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .vram-warn { color: #fbbf24; font-weight: 600; }
+        .vram-ok { color: #4ade80; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CPU vs GPU vs AI Model Karşılaştırması</h1>
+            <p>SG Dersi • Teorik işlem kapasitesi + yaklaşık LLM kelime üretimi</p>
+        </div>
+
+        <div class="panels">
+            <!-- CPU -->
+            <div class="card">
+                <div class="card-title cpu">🖥️ CPU</div>
+
+                <div class="form-group">
+                    <label for="cores">Çekirdek Sayısı</label>
+                    <input type="number" id="cores" min="1" max="256" value="8" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="freq">Frekans (GHz)</label>
+                    <input type="number" id="freq" min="0.1" max="10" value="3.6" step="0.1">
+                </div>
+
+                <div class="form-group">
+                    <label>İşletim Sistemi Bitliği</label>
+                    <div class="bit-group">
+                        <div class="bit-option">
+                            <input type="radio" name="bits" id="bit32" value="32">
+                            <label for="bit32">32-bit</label>
+                        </div>
+                        <div class="bit-option">
+                            <input type="radio" name="bits" id="bit64" value="64" checked>
+                            <label for="bit64">64-bit</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ipc">IPC</label>
+                    <div class="ipc-row">
+                        <input type="number" id="ipc" min="0.5" max="8" value="2" step="0.1">
+                        <span class="ipc-hint">1 – 4 arası tipik</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GPU -->
+            <div class="card">
+                <div class="card-title gpu">🎮 GPU</div>
+
+                <div class="form-group">
+                    <label for="gpuSelect">Ekran Kartı</label>
+                    <select id="gpuSelect">
+                        <option value="custom">Manuel Giriş</option>
+                        <option value="rtx1000ada" selected>RTX 1000 Ada 6GB (Senin)</option>
+                        <option value="rtx4060">RTX 4060 (8GB)</option>
+                        <option value="rtx4070">RTX 4070 (12GB)</option>
+                        <option value="rtx4080">RTX 4080 (16GB)</option>
+                        <option value="rtx4090">RTX 4090 (24GB)</option>
+                        <option value="a4000">RTX A4000 Pro (16GB)</option>
+                        <option value="a5000">RTX A5000 Pro (24GB)</option>
+                        <option value="a6000">RTX A6000 Pro (48GB)</option>
+                        <option value="rtx6000ada">RTX 6000 Ada Pro (48GB)</option>
+                        <option value="rtx4000ada">RTX 4000 Ada Pro (20GB)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cudaCores">CUDA Çekirdek</label>
+                    <input type="number" id="cudaCores" min="100" max="30000" value="2560" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="gpuClock">Boost Clock (MHz)</label>
+                    <input type="number" id="gpuClock" min="500" max="3500" value="2360" step="10">
+                </div>
+
+                <div class="info-box" id="gpuInfo">
+                    <strong>RTX 1000 Ada 6GB</strong><br>
+                    Ada • 2560 CUDA • ~12.1 TFLOPS • 6 GB
+                </div>
+            </div>
+
+            <!-- AI MODEL -->
+            <div class="card">
+                <div class="card-title ai">🤖 AI Model (LLM)</div>
+
+                <div class="form-group">
+                    <label for="modelSize">Parametre Sayısı</label>
+                    <select id="modelSize">
+                        <option value="2">2B</option>
+                        <option value="7" selected>7B</option>
+                        <option value="16">16B</option>
+                        <option value="24">24B</option>
+                        <option value="32">32B</option>
+                        <option value="48">48B</option>
+                        <option value="64">64B</option>
+                        <option value="72">72B</option>
+                        <option value="96">96B</option>
+                        <option value="120">120B</option>
+                    </select>
+                </div>
+
+                <div class="info-box" id="aiInfo">
+                    Hem GPU hem CPU ile yaklaşık üretim hızı hesaplanır.<br>
+                    (Q4/Q5 quant, batch=1 varsayımı)
+                </div>
+
+                <div class="info-box" id="vramStatus" style="margin-top:8px;">
+                    —
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="results">
+            <div class="result-box cpu-box">
+                <div class="result-label">CPU • 1 sn’de</div>
+                <div class="result-value" id="cpuResult">—</div>
+                <div class="result-unit">işlem</div>
+            </div>
+
+            <div class="result-box gpu-box">
+                <div class="result-label">GPU • 1 sn’de</div>
+                <div class="result-value" id="gpuResult">—</div>
+                <div class="result-unit">FP32 işlem</div>
+            </div>
+
+            <div class="result-box ai-box">
+                <div class="result-label">AI Model • 1 sn’de yaklaşık kelime</div>
+                <div class="ai-dual">
+                    <div>
+                        <span class="gpu-speed" id="aiGpuResult">—</span>
+                        <div style="font-size:0.75rem;color:var(--muted)">GPU ile</div>
+                    </div>
+                    <div>
+                        <span class="cpu-speed" id="aiCpuResult">—</span>
+                        <div style="font-size:0.75rem;color:var(--muted)">CPU ile</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="compare-note" id="compareNote">
+                GPU, CPU’dan <strong id="ratio">—</strong> kat daha fazla teorik işlem kapasitesine sahip.
+            </div>
+        </div>
+
+        <p class="formula-note">
+            <strong>CPU:</strong> Çekirdek × Frekans(Hz) × (Bit/8) × IPC &nbsp;|&nbsp;
+            <strong>GPU:</strong> CUDA × 2 × Clock(Hz) ≈ FP32 FLOPS<br>
+            <strong>AI Tahmini:</strong> GPU tarafı seçilen kartın gücüne, CPU tarafı girilen çekirdek/frekans değerlerine göre ölçeklenir (Q4 quant).<br>
+            1 token ≈ 0.75 kelime. VRAM yetersizse GPU hızı ciddi düşer. CPU tahmini de gerçek hayatta RAM hızına ve yazılım optimizasyonuna bağlıdır.
+        </p>
+    </div>
+
+    <script>
+        const gpuDB = {
+            rtx1000ada: { name: "RTX 1000 Ada 6GB", cores: 2560, clock: 2360, tflops: 12.1, vram: 6,
+                info: "Ada • 2560 CUDA • ~12.1 TFLOPS • 6 GB<br>Profesyonel mobil (senin kartın)" },
+            rtx4060:    { name: "RTX 4060 (8GB)", cores: 3072, clock: 2460, tflops: 15.1, vram: 8,
+                info: "Ada • 3072 CUDA • ~15.1 TFLOPS • 8 GB" },
+            rtx4070:    { name: "RTX 4070 (12GB)", cores: 5888, clock: 2475, tflops: 29.1, vram: 12,
+                info: "Ada • 5888 CUDA • ~29.1 TFLOPS • 12 GB" },
+            rtx4080:    { name: "RTX 4080 (16GB)", cores: 9728, clock: 2505, tflops: 48.7, vram: 16,
+                info: "Ada • 9728 CUDA • ~48.7 TFLOPS • 16 GB" },
+            rtx4090:    { name: "RTX 4090 (24GB)", cores: 16384, clock: 2520, tflops: 82.6, vram: 24,
+                info: "Ada • 16384 CUDA • ~82.6 TFLOPS • 24 GB" },
+            a4000:      { name: "RTX A4000 Pro (16GB)", cores: 6144, clock: 1560, tflops: 19.2, vram: 16,
+                info: "Ampere Pro • 6144 CUDA • ~19.2 TFLOPS • 16 GB" },
+            a5000:      { name: "RTX A5000 Pro (24GB)", cores: 8192, clock: 1695, tflops: 27.8, vram: 24,
+                info: "Ampere Pro • 8192 CUDA • ~27.8 TFLOPS • 24 GB" },
+            a6000:      { name: "RTX A6000 Pro (48GB)", cores: 10752, clock: 1800, tflops: 38.7, vram: 48,
+                info: "Ampere Pro • 10752 CUDA • ~38.7 TFLOPS • 48 GB" },
+            rtx6000ada: { name: "RTX 6000 Ada Pro (48GB)", cores: 18176, clock: 2505, tflops: 91.1, vram: 48,
+                info: "Ada Pro • 18176 CUDA • ~91.1 TFLOPS • 48 GB" },
+            rtx4000ada: { name: "RTX 4000 Ada Pro (20GB)", cores: 6144, clock: 2175, tflops: 26.7, vram: 20,
+                info: "Ada Pro • 6144 CUDA • ~26.7 TFLOPS • 20 GB" }
+        };
+
+        // Q4 quant yaklaşık VRAM ihtiyacı (GB)
+        const modelVram = {
+            2: 1.5, 7: 4.5, 16: 9, 24: 13, 32: 18,
+            48: 26, 64: 35, 72: 40, 96: 52, 120: 65
+        };
+
+        // RTX 4090 referans token/s (Q4, batch=1)
+        const baseTokens4090 = {
+            2: 280, 7: 145, 16: 75, 24: 52, 32: 40,
+            48: 28, 64: 22, 72: 18, 96: 13, 120: 9
+        };
+
+        // Güçlü bir CPU referansı: 16 çekirdek × 3.5 GHz × 8 byte × 2 IPC ≈ 896 GOps
+        // Bu referansta 7B model ≈ 22 token/s kabul ediyoruz
+        const refCpuOps = 16 * 3.5e9 * 8 * 2; // ~896e9
+        const refCpuTokens7B = 22;
+
+        const coresEl = document.getElementById('cores');
+        const freqEl = document.getElementById('freq');
+        const ipcEl = document.getElementById('ipc');
+        const gpuSelect = document.getElementById('gpuSelect');
+        const cudaCoresEl = document.getElementById('cudaCores');
+        const gpuClockEl = document.getElementById('gpuClock');
+        const gpuInfo = document.getElementById('gpuInfo');
+        const modelSizeEl = document.getElementById('modelSize');
+        const vramStatus = document.getElementById('vramStatus');
+        const cpuResult = document.getElementById('cpuResult');
+        const gpuResult = document.getElementById('gpuResult');
+        const aiGpuResult = document.getElementById('aiGpuResult');
+        const aiCpuResult = document.getElementById('aiCpuResult');
+        const ratioEl = document.getElementById('ratio');
+
+        function formatNumber(num) {
+            if (num >= 1e15) return (num / 1e15).toFixed(2) + ' Katrilyon';
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + ' Trilyon';
+            if (num >= 1e9)  return (num / 1e9).toFixed(2) + ' Milyar';
+            if (num >= 1e6)  return (num / 1e6).toFixed(2) + ' Milyon';
+            if (num >= 1e3)  return (num / 1e3).toFixed(2) + ' Bin';
+            return Math.round(num).toLocaleString('tr-TR');
+        }
+
+        function getCurrentGpuTflopsAndVram() {
+            const key = gpuSelect.value;
+            if (key !== 'custom' && gpuDB[key]) {
+                return { tflops: gpuDB[key].tflops, vram: gpuDB[key].vram };
+            }
+            const cuda = parseFloat(cudaCoresEl.value) || 0;
+            const clock = parseFloat(gpuClockEl.value) || 0;
+            const tflops = (cuda * 2 * clock) / 1e6;
+            return { tflops: tflops || 10, vram: 8 };
+        }
+
+        function updateGpuFromSelect() {
+            const key = gpuSelect.value;
+            if (key === 'custom') {
+                gpuInfo.innerHTML = '<strong>Manuel Giriş</strong><br>CUDA ve clock değerlerini kendin gir.';
+                hesapla();
+                return;
+            }
+            const g = gpuDB[key];
+            cudaCoresEl.value = g.cores;
+            gpuClockEl.value = g.clock;
+            gpuInfo.innerHTML = `<strong>${g.name}</strong><br>${g.info}`;
+            hesapla();
+        }
+
+        function hesapla() {
+            // --- CPU teorik işlem ---
+            const cores = parseFloat(coresEl.value) || 0;
+            const freqGHz = parseFloat(freqEl.value) || 0;
+            const ipc = parseFloat(ipcEl.value) || 1;
+            const bits = parseInt(document.querySelector('input[name="bits"]:checked').value);
+            const cpuOps = cores * (freqGHz * 1e9) * (bits / 8) * ipc;
+
+            // --- GPU teorik işlem ---
+            const cuda = parseFloat(cudaCoresEl.value) || 0;
+            const clockHz = (parseFloat(gpuClockEl.value) || 0) * 1e6;
+            const gpuOps = cuda * 2 * clockHz;
+
+            cpuResult.textContent = formatNumber(cpuOps);
+            gpuResult.textContent = formatNumber(gpuOps);
+
+            if (cpuOps > 0) {
+                const ratio = gpuOps / cpuOps;
+                ratioEl.textContent = ratio >= 10 ? Math.round(ratio).toLocaleString('tr-TR') : ratio.toFixed(1);
+            } else {
+                ratioEl.textContent = '—';
+            }
+
+            // --- AI Model ---
+            const modelB = parseInt(modelSizeEl.value);
+            const { tflops, vram } = getCurrentGpuTflopsAndVram();
+            const neededVram = modelVram[modelB] || 10;
+
+            // GPU token tahmini (RTX 4090 referanslı)
+            const scaleGpu = tflops / 82.6;
+            let tokensGpu = (baseTokens4090[modelB] || 20) * scaleGpu;
+
+            // VRAM cezası
+            if (vram < neededVram) {
+                tokensGpu *= 0.12;
+                vramStatus.innerHTML = `<span class="vram-warn">⚠️ VRAM yetersiz (~${neededVram} GB gerekir, kartta ${vram} GB)</span><br>Model yüklenmeyebilir veya çok yavaş çalışır.`;
+            } else if (vram < neededVram * 1.25) {
+                tokensGpu *= 0.65;
+                vramStatus.innerHTML = `<span class="vram-warn">⚠️ VRAM sınırda</span> (~${neededVram} GB gerekir)`;
+            } else {
+                vramStatus.innerHTML = `<span class="vram-ok">✓ VRAM yeterli</span> (kart: ${vram} GB • model ~${neededVram} GB)`;
+            }
+
+            // CPU token tahmini
+            // Referans: güçlü 16c/3.5GHz CPU → 7B için ~22 t/s
+            // Model boyutu büyüdükçe ters orantılı düşer
+            const scaleCpu = cpuOps / refCpuOps;
+            let tokensCpu = refCpuTokens7B * scaleCpu * (7 / modelB);
+
+            // Çok küçük değerlere düşmesin diye taban
+            if (tokensCpu < 0.2) tokensCpu = 0.2;
+
+            // Token → kelime (≈0.75)
+            const wordsGpu = tokensGpu * 0.75;
+            const wordsCpu = tokensCpu * 0.75;
+
+            aiGpuResult.textContent = wordsGpu < 1 ? wordsGpu.toFixed(1) : Math.round(wordsGpu);
+            aiCpuResult.textContent = wordsCpu < 1 ? wordsCpu.toFixed(1) : Math.round(wordsCpu);
+        }
+
+        // Events
+        [coresEl, freqEl, ipcEl, cudaCoresEl, gpuClockEl].forEach(el => el.addEventListener('input', hesapla));
+        document.querySelectorAll('input[name="bits"]').forEach(el => el.addEventListener('change', hesapla));
+        gpuSelect.addEventListener('change', updateGpuFromSelect);
+        modelSizeEl.addEventListener('change', hesapla);
+
+        // İlk yükleme
+        updateGpuFromSelect();
+    </script>
+</body>
+</html>
