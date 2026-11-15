@@ -11,8 +11,8 @@ Her bir uygulama kendi klasörü içerisinde yer almaktadır ve doğrudan taray�
 
 Uygulamaları tarayıcınızda hemen denemek için aşağıdaki bağlantılara tıklayabilirsiniz:
 
-* **[Uygulama 1 Adı](https://github.io)** - *Uygulamanın ne işe yaradığına dair kısa bir cümle.*
-* **[Uygulama 2 Adı](https://github.io)** - *Uygulamanın ne işe yaradığına dair kısa bir cümle.*
+* **[Uygulama 1 Adı]([https://github.io](https://zsahan.github.io/ai-project-files/cpu-gpu-ai-karsilastirma/))** - *CPU vs GPU vs AI Model Karşılaştırması*
+* **[Uygulama 2 Adı]([https://github.io](https://zsahan.github.io/ai-project-files/cpu-compute-hesaplama/))** - *CPU Teorik olarak saniyedeki işlem hesaplaması*
 
 ## 🛠️ Kullanılan Teknolojiler
 * HTML5, CSS3, JavaScript
