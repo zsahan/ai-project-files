@@ -1,1 +1,988 @@
+<!-- Başkandan Gözdesi Zekeriya'ya Sevgilerle :) Image Resizer :) -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Image Resizer</title>
+<style>
+:root {
+  --bg: #070b12;
+  --surface: #101826;
+  --surface-2: #162033;
+  --fg: #e7f2ff;
+  --muted: #8ea3bb;
+  --cyan: #2ee6ff;
+  --danger: #fb7185;
+  --line: #1c3344;
+  --stage: 232px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+body {
+  font-family: "Ubuntu", "Segoe UI", sans-serif;
+  font-size: 15.5px;
+  background-image:
+    linear-gradient(rgb(46 230 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(46 230 255 / 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+  background: rgb(7 11 18 / 0.92);
+}
+h1 {
+  margin: 0; font-family: "Ubuntu Mono", ui-monospace, monospace;
+  font-size: 20px; letter-spacing: 0.16em; font-weight: 700; color: var(--cyan);
+}
+header p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+#status { color: var(--muted); font-family: "Ubuntu Mono", ui-monospace, monospace; font-size: 13px; text-align: right; }
+.workspace {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 10px; padding: 10px;
+  overflow: hidden;
+}
+.col { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; overflow: auto; }
+h2 {
+  margin: 0; text-align: center; font-size: 13.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--cyan); font-weight: 650;
+}
+.stage {
+  height: var(--stage); border: 1px solid var(--line); border-radius: 10px;
+  background: #000; position: relative; overflow: hidden; flex: none;
+}
+.stage.grow { flex: 1; height: auto; min-height: 280px; }
+.checker {
+  background-color: #0c121c;
+  background-image:
+    linear-gradient(45deg, #182433 25%, transparent 25%),
+    linear-gradient(-45deg, #182433 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #182433 75%),
+    linear-gradient(-45deg, transparent 75%, #182433 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+#origCanvas, #workCanvas { display: block; width: 100%; height: 100%; }
+#workCanvas { cursor: crosshair; touch-action: none; }
+#workCanvas.pan { cursor: grab; }
+#workCanvas.grabbing { cursor: grabbing; }
+#prevStage { display: flex; align-items: center; justify-content: center; }
+#prevCanvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; flex: 0 0 auto; }
+.row { display: flex; gap: 8px; }
+.row > button { flex: 1; }
+button, select, input[type="number"] {
+  background: var(--surface-2); border: 1px solid #245066; border-radius: 8px;
+  min-height: 42px; padding: 7px 12px;
+}
+button:hover { border-color: var(--cyan); box-shadow: 0 0 14px rgb(46 230 255 / 0.18); }
+button.primary { background: var(--cyan); color: #04131a; border-color: var(--cyan); font-weight: 700; }
+button.danger { border-color: rgb(251 113 133 / 0.55); color: #fecdd3; }
+button.active { background: var(--cyan); color: #04131a; border-color: var(--cyan); }
+.meta { margin: 0; color: var(--muted); font-family: "Ubuntu Mono", ui-monospace, monospace; font-size: 13px; line-height: 1.45; }
+.side-controls { display: flex; flex-direction: column; gap: 8px; }
+label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14.5px; color: var(--muted); }
+input[type="number"] { width: 88px; font-family: "Ubuntu Mono", ui-monospace, monospace; }
+input[type="range"] { width: 100%; accent-color: var(--cyan); }
+select { width: 100%; }
+.checks { display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; color: var(--fg); }
+.checks label { justify-content: flex-start; color: var(--fg); }
+.ratios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ratios button { padding-inline: 0; }
+.drop {
+  display: none; position: absolute; inset: 8px; border: 1px dashed var(--cyan);
+  border-radius: 8px; background: rgb(46 230 255 / 0.08); color: var(--cyan);
+  align-items: center; justify-content: center; font-size: 16px; pointer-events: none;
+}
+#saveBtn { position: sticky; bottom: 6px; z-index: 2; margin-top: 4px; }
+.dock {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
+  padding: 0 10px 10px; max-height: 38vh; overflow: auto;
+}
+.card {
+  background: rgb(16 24 38 / 0.94); border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.card h3 {
+  margin: 0; color: var(--cyan); font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.card .wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.card label { width: 100%; }
+@media (max-width: 1100px) {
+  .app { height: auto; min-height: 100vh; overflow: auto; }
+  .workspace { grid-template-columns: 1fr; }
+  .stage.grow { flex: none; height: 420px; }
+  .dock { grid-template-columns: 1fr 1fr; max-height: none; }
+}
+@media (max-width: 640px) {
+  .dock { grid-template-columns: 1fr; }
+  header { align-items: flex-start; flex-direction: column; }
+  #status { text-align: left; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>LOCAL IMAGE RESIZER</h1>
+      <p>Yerel kırpma, ölçek ve dışa aktarma</p>
+    </div>
+    <div id="status">Resim seçin veya orta alana sürükleyin</div>
+  </header>
+  <div class="workspace">
+    <section class="col">
+      <h2>Orijinal</h2>
+      <div class="stage checker" id="origStage"><canvas id="origCanvas"></canvas></div>
+      <div class="row">
+        <button type="button" class="primary" id="openBtn">Resim seç / aç</button>
+        <button type="button" class="danger" id="closeBtn">Kapat</button>
+      </div>
+      <input id="file" type="file" accept="image/*,.bmp,.tif,.tiff,.png,.jpg,.jpeg,.webp,.gif,.avif" hidden>
+      <p class="meta" id="origInfo">Henüz resim yok</p>
+      <section class="card" style="margin-top: 4px;">
+        <h3>Geçmiş</h3>
+        <div class="wrap">
+          <button type="button" id="undoBtn">Geri al</button>
+          <button type="button" id="resetBtn">Sıfırla</button>
+        </div>
+        <p class="meta">Ctrl+Z geri alır. Ctrl+S kaydeder. Döndürme, eğme ve filtreler seçili alana uygulanır; sağdaki önizleme kaydedilen piksellerdir.</p>
+      </section>
+    </section>
+    <section class="col">
+      <h2>Düzenleme</h2>
+      <div class="stage grow checker" id="workStage">
+        <canvas id="workCanvas"></canvas>
+        <div class="drop" id="drop">Resmi bırakın</div>
+      </div>
+    </section>
+    <section class="col">
+      <h2>Önizleme</h2>
+      <div class="stage checker" id="prevStage"><canvas id="prevCanvas"></canvas></div>
+      <p class="meta" id="prevInfo">Seçili alan, kendi oranıyla</p>
+      <div class="side-controls">
+        <label>Genişlik <input id="outW" type="number" min="1" value="1"></label>
+        <label>Yükseklik <input id="outH" type="number" min="1" value="1"></label>
+        <div class="checks">
+          <label><input id="follow" type="checkbox" checked> Çıktı = seçim pikseli</label>
+          <label><input id="lock" type="checkbox" checked> Oran kilidi</label>
+        </div>
+        <div class="ratios">
+          <button type="button" data-ratio="1,1">1:1</button>
+          <button type="button" data-ratio="4,3">4:3</button>
+          <button type="button" data-ratio="16,9">16:9</button>
+          <button type="button" data-ratio="16,10">16:10</button>
+        </div>
+        <label>Format
+          <select id="format">
+            <option value="image/png">PNG · transparan</option>
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WebP · transparan</option>
+            <option value="image/avif">AVIF</option>
+            <option value="image/bmp">BMP</option>
+            <option value="image/tiff">TIFF · transparan</option>
+            <option value="application/pdf">PDF</option>
+          </select>
+        </label>
+        <label>Kalite <input id="quality" type="number" min="0.4" max="1" step="0.05" value="0.92"></label>
+        <p class="meta" id="formatHint">PNG ve WebP saydamlığı korur. JPEG, BMP ve PDF beyaz zemine düzlenir.</p>
+        <button type="button" class="primary" id="saveBtn">Farklı kaydet</button>
+        <p class="meta" id="fileInfo"></p>
+      </div>
+    </section>
+  </div>
+  <div class="dock">
+    <section class="card">
+      <h3>Zoom</h3>
+      <div class="wrap">
+        <button type="button" id="zoomIn">Yakınlaş</button>
+        <button type="button" id="zoomOut">Uzaklaş</button>
+        <button type="button" id="fitBtn">Sığdır</button>
+        <span class="meta">Zoom <span id="zoomVal">100%</span></span>
+      </div>
+      <div class="wrap">
+        <button type="button" id="modeSelect" class="active">Seç</button>
+        <button type="button" id="modePan">Kaydır</button>
+      </div>
+      <p class="meta">Tekerlek yakınlaştırır. Seç modunda boş alan yeni çerçeve çizer.</p>
+    </section>
+    <section class="card">
+      <h3>Seçim</h3>
+      <label>X <input id="selX" type="number" value="0"></label>
+      <label>Y <input id="selY" type="number" value="0"></label>
+      <label>W <input id="selW" type="number" value="1"></label>
+      <label>H <input id="selH" type="number" value="1"></label>
+      <button type="button" id="fullBtn">Tüm resim</button>
+    </section>
+    <section class="card">
+      <h3>Geometri</h3>
+      <div class="wrap">
+        <button type="button" id="rotR">Sağa 90°</button>
+        <button type="button" id="rotL">Sola 90°</button>
+        <button type="button" id="flipH">Yatay çevir</button>
+        <button type="button" id="flipV">Dikey çevir</button>
+      </div>
+      <label>Açı <input id="angle" type="number" value="0" step="1"></label>
+      <label>Yatay eğme <input id="skewX" type="range" min="-45" max="45" value="0"></label>
+      <label>Dikey eğme <input id="skewY" type="range" min="-45" max="45" value="0"></label>
+    </section>
+    <section class="card">
+      <h3>Renk ve ışık</h3>
+      <label>Parlaklık <input id="brightness" type="range" min="0" max="200" value="100"></label>
+      <label>Kontrast <input id="contrast" type="range" min="0" max="200" value="100"></label>
+      <label>Doygunluk <input id="saturation" type="range" min="0" max="200" value="100"></label>
+      <label>Bulanıklık <input id="blur" type="range" min="0" max="20" value="0" step="0.5"></label>
+    </section>
+    <section class="card">
+      <h3>Filtre ve zemin</h3>
+      <div class="wrap">
+        <button type="button" data-filter="none" class="active">Normal</button>
+        <button type="button" data-filter="grayscale">Siyah-beyaz</button>
+        <button type="button" data-filter="sepia">Sepya</button>
+        <button type="button" data-filter="invert">Ters çevir</button>
+      </div>
+      <div class="wrap">
+        <button type="button" id="bgWhite">Beyaz sil</button>
+        <button type="button" id="bgGray">Gri sil</button>
+        <button type="button" id="bgBoth">Beyaz + gri sil</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const S = {
+  srcVer: 0, rotation: 0, flipH: false, flipV: false, skewX: 0, skewY: 0,
+  brightness: 100, contrast: 100, saturation: 100, blur: 0, filter: "none",
+  sel: { x: 0, y: 0, w: 1, h: 1 }, outW: 1, outH: 1, follow: true, lock: true,
+  zoom: 1, panX: 0, panY: 0, mode: "select"
+};
+let original = null, source = null, fileBase = "resim", history = [], drag = null;
+let displayCache = { key: "", canvas: null };
+const pat = document.createElement("canvas");
+pat.width = 16; pat.height = 16;
+{
+  const g = pat.getContext("2d");
+  g.fillStyle = "#0c121c"; g.fillRect(0, 0, 16, 16);
+  g.fillStyle = "#182433"; g.fillRect(0, 0, 8, 8); g.fillRect(8, 8, 8, 8);
+}
+let pattern = null;
 
+function setStatus(t) { $("status").textContent = t; }
+function setVal(id, value) {
+  const el = $(id);
+  if (document.activeElement === el) return;
+  el.value = value;
+}
+function num(id) { return Number($(id).value); }
+function filterCSS() {
+  let f = "brightness(" + S.brightness + "%) contrast(" + S.contrast + "%) saturate(" + S.saturation + "%) blur(" + S.blur + "px)";
+  if (S.filter === "grayscale") f += " grayscale(1)";
+  if (S.filter === "sepia") f += " sepia(1)";
+  if (S.filter === "invert") f += " invert(1)";
+  return f;
+}
+function cloneCanvas(src) {
+  const c = document.createElement("canvas");
+  c.width = src.width; c.height = src.height;
+  c.getContext("2d").drawImage(src, 0, 0);
+  return c;
+}
+function clampSel(sel, bw, bh) {
+  let x = sel.x, y = sel.y, w = sel.w, h = sel.h;
+  if (w < 0) { x += w; w = -w; }
+  if (h < 0) { y += h; h = -h; }
+  if (x < 0) { w += x; x = 0; }
+  if (y < 0) { h += y; y = 0; }
+  if (bw < 1 || bh < 1) return { x: 0, y: 0, w: 1, h: 1 };
+  x = Math.max(0, Math.min(x, bw - 1));
+  y = Math.max(0, Math.min(y, bh - 1));
+  w = Math.max(1, Math.min(w, bw - x));
+  h = Math.max(1, Math.min(h, bh - y));
+  return { x, y, w, h };
+}
+function renderGeometry(src) {
+  const w = src.width, h = src.height;
+  const sx = Math.tan(S.skewX * Math.PI / 180);
+  const sy = Math.tan(S.skewY * Math.PI / 180);
+  const rad = S.rotation * Math.PI / 180;
+  const cos = Math.cos(rad), sin = Math.sin(rad);
+  const corners = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
+  let maxX = 1, maxY = 1;
+  for (const [x, y] of corners) {
+    const x1 = x + sx * y;
+    const y1 = sy * x + y;
+    maxX = Math.max(maxX, Math.abs(x1 * cos - y1 * sin));
+    maxY = Math.max(maxY, Math.abs(x1 * sin + y1 * cos));
+  }
+  const W = Math.ceil(maxX * 2) + 2;
+  const H = Math.ceil(maxY * 2) + 2;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(rad);
+  ctx.scale(S.flipH ? -1 : 1, S.flipV ? -1 : 1);
+  ctx.transform(1, sy, sx, 1, 0, 0);
+  ctx.drawImage(src, -w / 2, -h / 2);
+  return c;
+}
+function getDisplay() {
+  if (!source) return null;
+  const key = [S.srcVer, S.rotation, S.flipH, S.flipV, S.skewX, S.skewY, source.width, source.height].join(",");
+  if (displayCache.key === key && displayCache.canvas) return displayCache.canvas;
+  const identity = !S.rotation && !S.flipH && !S.flipV && !S.skewX && !S.skewY;
+  const canvas = identity ? source : renderGeometry(source);
+  displayCache = { key, canvas };
+  return canvas;
+}
+function prep(canvas, box) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, box.clientWidth);
+  const h = Math.max(1, box.clientHeight);
+  const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+  if (canvas.width !== bw || canvas.height !== bh) {
+    canvas.width = bw; canvas.height = bh;
+  }
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!pattern) pattern = ctx.createPattern(pat, "repeat");
+  return { ctx, w, h };
+}
+function syncInputs() {
+  setVal("selX", Math.round(S.sel.x));
+  setVal("selY", Math.round(S.sel.y));
+  setVal("selW", Math.round(S.sel.w));
+  setVal("selH", Math.round(S.sel.h));
+  setVal("outW", Math.round(S.outW));
+  setVal("outH", Math.round(S.outH));
+  setVal("angle", S.rotation);
+  setVal("skewX", S.skewX);
+  setVal("skewY", S.skewY);
+  setVal("brightness", S.brightness);
+  setVal("contrast", S.contrast);
+  setVal("saturation", S.saturation);
+  setVal("blur", S.blur);
+  $("follow").checked = S.follow;
+  $("lock").checked = S.lock;
+  $("zoomVal").textContent = Math.round(S.zoom * 100) + "%";
+  document.querySelectorAll("[data-filter]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.filter === S.filter);
+  });
+}
+function capSize(w, h) {
+  const max = 8192;
+  if (w <= max && h <= max) return { w, h, capped: false };
+  const s = Math.min(max / w, max / h);
+  return { w: Math.max(1, Math.round(w * s)), h: Math.max(1, Math.round(h * s)), capped: true };
+}
+function drawOriginal() {
+  const box = $("origStage");
+  const canvas = $("origCanvas");
+  const { ctx, w, h } = prep(canvas, box);
+  ctx.clearRect(0, 0, w, h);
+  if (!original) {
+    ctx.fillStyle = "#8ea3bb";
+    ctx.font = "13px Ubuntu, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Orijinal yok", w / 2, h / 2);
+    return;
+  }
+  const s = Math.min(w / original.width, h / original.height);
+  const dw = original.width * s, dh = original.height * s;
+  ctx.drawImage(original, (w - dw) / 2, (h - dh) / 2, dw, dh);
+}
+function drawPreview() {
+  const canvas = $("prevCanvas");
+  const d = getDisplay();
+  const info = $("prevInfo");
+  if (!d) {
+    canvas.width = 2; canvas.height = 2;
+    canvas.style.width = "2px";
+    canvas.style.height = "2px";
+    info.textContent = "Seçili alan, kendi oranıyla";
+    return;
+  }
+  const sel = clampSel(S.sel, d.width, d.height);
+  S.sel = sel;
+  let w = Math.max(1, Math.round(S.outW));
+  let h = Math.max(1, Math.round(S.outH));
+  const capped = capSize(w, h);
+  w = capped.w; h = capped.h;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.clearRect(0, 0, w, h);
+  ctx.filter = filterCSS();
+  ctx.drawImage(d, sel.x, sel.y, sel.w, sel.h, 0, 0, w, h);
+  ctx.filter = "none";
+  const box = $("prevStage");
+  const scale = Math.min((box.clientWidth - 8) / w, (box.clientHeight - 8) / h);
+  canvas.style.width = Math.max(1, Math.floor(w * scale)) + "px";
+  canvas.style.height = Math.max(1, Math.floor(h * scale)) + "px";
+  info.textContent = "Seçim " + Math.round(sel.w) + "×" + Math.round(sel.h) + "  →  çıktı " + w + "×" + h + (capped.capped ? " (sınırlandı)" : "");
+}
+function drawWork() {
+  const box = $("workStage");
+  const canvas = $("workCanvas");
+  const { ctx, w, h } = prep(canvas, box);
+  ctx.clearRect(0, 0, w, h);
+  const d = getDisplay();
+  if (!d) {
+    ctx.fillStyle = "#8ea3bb";
+    ctx.font = "15px Ubuntu, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Resmi sürükleyin veya seçin", w / 2, h / 2);
+    drawPreview();
+    return;
+  }
+  ctx.save();
+  ctx.translate(S.panX, S.panY);
+  ctx.scale(S.zoom, S.zoom);
+  ctx.fillStyle = pattern || "#0c121c";
+  ctx.fillRect(0, 0, d.width, d.height);
+  ctx.filter = filterCSS();
+  ctx.drawImage(d, 0, 0);
+  ctx.filter = "none";
+  const sel = clampSel(S.sel, d.width, d.height);
+  S.sel = sel;
+  ctx.strokeStyle = "#2ee6ff";
+  ctx.lineWidth = 1.5 / S.zoom;
+  ctx.setLineDash([6 / S.zoom, 4 / S.zoom]);
+  ctx.strokeRect(sel.x, sel.y, sel.w, sel.h);
+  ctx.setLineDash([]);
+  const hs = 8 / S.zoom;
+  ctx.fillStyle = "#2ee6ff";
+  const pts = [
+    [sel.x, sel.y], [sel.x + sel.w, sel.y], [sel.x, sel.y + sel.h], [sel.x + sel.w, sel.y + sel.h],
+    [sel.x + sel.w / 2, sel.y], [sel.x + sel.w / 2, sel.y + sel.h], [sel.x, sel.y + sel.h / 2], [sel.x + sel.w, sel.y + sel.h / 2]
+  ];
+  for (const [x, y] of pts) ctx.fillRect(x - hs / 2, y - hs / 2, hs, hs);
+  ctx.restore();
+  $("zoomVal").textContent = Math.round(S.zoom * 100) + "%";
+  drawPreview();
+}
+function redraw() { drawOriginal(); drawWork(); }
+function fitView() {
+  const d = getDisplay();
+  const box = $("workStage");
+  if (!d || !box) return;
+  const z = Math.min(box.clientWidth / d.width, box.clientHeight / d.height, 1);
+  S.zoom = z || 1;
+  S.panX = (box.clientWidth - d.width * S.zoom) / 2;
+  S.panY = (box.clientHeight - d.height * S.zoom) / 2;
+  redraw();
+}
+function snapshot() {
+  return {
+    url: source.toDataURL("image/png"),
+    state: {
+      rotation: S.rotation, flipH: S.flipH, flipV: S.flipV, skewX: S.skewX, skewY: S.skewY,
+      brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, blur: S.blur,
+      filter: S.filter, follow: S.follow, lock: S.lock,
+      sel: { ...S.sel }, outW: S.outW, outH: S.outH, zoom: S.zoom, panX: S.panX, panY: S.panY, mode: S.mode
+    }
+  };
+}
+function commit() {
+  if (!source) return;
+  try {
+    history.push(snapshot());
+    if (history.length > 8) history.shift();
+  } catch (err) { /* oversized snapshot is non-fatal */ }
+}
+function applyState(state) {
+  Object.assign(S, state);
+  S.sel = { ...state.sel };
+  displayCache = { key: "", canvas: null };
+  syncInputs();
+  $("modeSelect").classList.toggle("active", S.mode !== "pan");
+  $("modePan").classList.toggle("active", S.mode === "pan");
+  $("workCanvas").classList.toggle("pan", S.mode === "pan");
+}
+function setGeometry(partial) {
+  Object.assign(S, partial);
+  displayCache = { key: "", canvas: null };
+  const d = getDisplay();
+  if (d) {
+    S.sel = { x: 0, y: 0, w: d.width, h: d.height };
+    if (S.follow) { S.outW = d.width; S.outH = d.height; }
+  }
+  syncInputs();
+  redraw();
+}
+function loadFile(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth || img.width;
+    c.height = img.naturalHeight || img.height;
+    if (!c.width || !c.height) { setStatus("Resim boyutu okunamadı"); return; }
+    c.getContext("2d").drawImage(img, 0, 0);
+    original = c;
+    source = cloneCanvas(c);
+    fileBase = (file.name || "resim").replace(/\.[^.]+$/, "") || "resim";
+    history = [];
+    S.srcVer++;
+    S.rotation = 0; S.flipH = false; S.flipV = false; S.skewX = 0; S.skewY = 0;
+    S.brightness = 100; S.contrast = 100; S.saturation = 100; S.blur = 0; S.filter = "none";
+    S.follow = true; S.lock = true; S.mode = "select";
+    displayCache = { key: "", canvas: null };
+    const d = getDisplay();
+    S.sel = { x: 0, y: 0, w: d.width, h: d.height };
+    S.outW = d.width; S.outH = d.height;
+    syncInputs();
+    $("origInfo").textContent = d.width + "×" + d.height + " px · " + file.name;
+    $("fileInfo").textContent = "";
+    setStatus("Yüklendi: " + file.name);
+    requestAnimationFrame(fitView);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); setStatus("Bu dosya açılamadı"); };
+  img.src = url;
+}
+function closeImage() {
+  original = null; source = null; history = []; fileBase = "resim";
+  displayCache = { key: "", canvas: null };
+  S.srcVer++;
+  $("origInfo").textContent = "Henüz resim yok";
+  $("fileInfo").textContent = "";
+  setStatus("Kapatıldı");
+  redraw();
+}
+function zoomBy(factor) {
+  const box = $("workStage");
+  const cx = box.clientWidth / 2, cy = box.clientHeight / 2;
+  const ix = (cx - S.panX) / S.zoom, iy = (cy - S.panY) / S.zoom;
+  S.zoom = Math.max(0.05, Math.min(20, S.zoom * factor));
+  S.panX = cx - ix * S.zoom;
+  S.panY = cy - iy * S.zoom;
+  redraw();
+}
+function rotate(delta) {
+  if (!source) return;
+  commit();
+  const r = ((S.rotation + delta) % 360 + 360) % 360;
+  setGeometry({ rotation: r });
+  setStatus("Döndürüldü");
+}
+function flip(axis) {
+  if (!source) return;
+  commit();
+  if (axis === "h") S.flipH = !S.flipH; else S.flipV = !S.flipV;
+  setGeometry({});
+}
+function readFilters() {
+  S.brightness = num("brightness");
+  S.contrast = num("contrast");
+  S.saturation = num("saturation");
+  S.blur = num("blur");
+  redraw();
+}
+function setFilter(name) {
+  if (!source) { S.filter = name; syncInputs(); return; }
+  commit();
+  S.filter = name;
+  syncInputs();
+  redraw();
+}
+function removeBackground(mode) {
+  const d = getDisplay();
+  if (!d) return;
+  commit();
+  const c = document.createElement("canvas");
+  c.width = d.width; c.height = d.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(d, 0, 0);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const data = img.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), avg = (r + g + b) / 3;
+    const white = r > 235 && g > 235 && b > 235;
+    const gray = (max - min) < 18 && avg > 160 && avg < 236;
+    if ((mode === "white" && white) || (mode === "gray" && gray) || (mode === "both" && (white || gray))) data[i + 3] = 0;
+  }
+  ctx.putImageData(img, 0, 0);
+  source = c;
+  S.srcVer++;
+  S.rotation = 0; S.flipH = false; S.flipV = false; S.skewX = 0; S.skewY = 0;
+  displayCache = { key: "", canvas: null };
+  setGeometry({});
+  setStatus("Arkaplan silindi");
+}
+function undo() {
+  const prev = history.pop();
+  if (!prev || !prev.url) { setStatus("Geri alınacak adım yok"); return; }
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    c.getContext("2d").drawImage(img, 0, 0);
+    source = c;
+    S.srcVer++;
+    applyState(prev.state);
+    redraw();
+    setStatus("Geri alındı");
+  };
+  img.src = prev.url;
+}
+function resetAll() {
+  if (!original) return;
+  commit();
+  source = cloneCanvas(original);
+  S.srcVer++;
+  S.rotation = 0; S.flipH = false; S.flipV = false; S.skewX = 0; S.skewY = 0;
+  S.brightness = 100; S.contrast = 100; S.saturation = 100; S.blur = 0; S.filter = "none";
+  S.follow = true; S.lock = true;
+  displayCache = { key: "", canvas: null };
+  const d = getDisplay();
+  S.sel = { x: 0, y: 0, w: d.width, h: d.height };
+  S.outW = d.width; S.outH = d.height;
+  syncInputs();
+  fitView();
+  setStatus("Orijinale döndü");
+}
+function fromSel() {
+  const d = getDisplay();
+  if (!d) return;
+  commit();
+  S.sel = clampSel({ x: num("selX"), y: num("selY"), w: num("selW"), h: num("selH") }, d.width, d.height);
+  if (S.follow) { S.outW = Math.round(S.sel.w); S.outH = Math.round(S.sel.h); }
+  syncInputs();
+  redraw();
+}
+function fromOut(which) {
+  S.follow = false;
+  $("follow").checked = false;
+  let w = Math.max(1, Math.round(num("outW") || 1));
+  let h = Math.max(1, Math.round(num("outH") || 1));
+  if (S.lock && S.sel.w > 0 && S.sel.h > 0) {
+    if (which === "w") h = Math.max(1, Math.round(w * S.sel.h / S.sel.w));
+    else w = Math.max(1, Math.round(h * S.sel.w / S.sel.h));
+  }
+  S.outW = w; S.outH = h;
+  syncInputs();
+  redraw();
+}
+function setRatio(a, b) {
+  if (!source) return;
+  commit();
+  S.follow = false; S.lock = true;
+  const w = Math.max(1, Math.round(S.outW || S.sel.w || 1));
+  S.outW = w;
+  S.outH = Math.max(1, Math.round(w * b / a));
+  syncInputs();
+  redraw();
+  setStatus("Çıktı oranı " + a + ":" + b);
+}
+function flatten(src) {
+  const c = document.createElement("canvas");
+  c.width = src.width; c.height = src.height;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(src, 0, 0);
+  return c;
+}
+function canvasToBMP(canvas) {
+  const w = canvas.width, h = canvas.height;
+  const src = flatten(canvas).getContext("2d").getImageData(0, 0, w, h).data;
+  const row = Math.floor((24 * w + 31) / 32) * 4;
+  const pixels = row * h;
+  const size = 54 + pixels;
+  const buf = new ArrayBuffer(size);
+  const v = new DataView(buf);
+  const u = new Uint8Array(buf);
+  v.setUint8(0, 0x42); v.setUint8(1, 0x4d);
+  v.setUint32(2, size, true); v.setUint32(10, 54, true); v.setUint32(14, 40, true);
+  v.setInt32(18, w, true); v.setInt32(22, h, true);
+  v.setUint16(26, 1, true); v.setUint16(28, 24, true); v.setUint32(34, pixels, true);
+  let o = 54;
+  for (let y = h - 1; y >= 0; y--) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      u[o++] = src[i + 2]; u[o++] = src[i + 1]; u[o++] = src[i];
+    }
+    while ((o - 54) % row !== 0) u[o++] = 0;
+  }
+  return new Blob([buf], { type: "image/bmp" });
+}
+function canvasToTIFF(canvas) {
+  const w = canvas.width, h = canvas.height;
+  const rgba = canvas.getContext("2d").getImageData(0, 0, w, h).data;
+  const bpsPos = 8, xresPos = 16, yresPos = 24, pixPos = 32;
+  const ifdPos = pixPos + rgba.byteLength;
+  const n = 12;
+  const ifdSize = 2 + n * 12 + 4;
+  const buf = new ArrayBuffer(ifdPos + ifdSize);
+  const v = new DataView(buf);
+  const u = new Uint8Array(buf);
+  v.setUint8(0, 0x49); v.setUint8(1, 0x49); v.setUint16(2, 42, true); v.setUint32(4, ifdPos, true);
+  v.setUint16(bpsPos, 8, true); v.setUint16(bpsPos + 2, 8, true); v.setUint16(bpsPos + 4, 8, true); v.setUint16(bpsPos + 6, 8, true);
+  v.setUint32(xresPos, 72, true); v.setUint32(xresPos + 4, 1, true);
+  v.setUint32(yresPos, 72, true); v.setUint32(yresPos + 4, 1, true);
+  u.set(rgba, pixPos);
+  let p = ifdPos;
+  v.setUint16(p, n, true); p += 2;
+  const entry = (tag, type, count, value) => {
+    v.setUint16(p, tag, true); p += 2;
+    v.setUint16(p, type, true); p += 2;
+    v.setUint32(p, count, true); p += 4;
+    v.setUint32(p, value, true); p += 4;
+  };
+  entry(256, 4, 1, w); entry(257, 4, 1, h); entry(258, 3, 4, bpsPos);
+  entry(259, 3, 1, 1); entry(262, 3, 1, 2); entry(273, 4, 1, pixPos);
+  entry(277, 3, 1, 4); entry(278, 4, 1, h); entry(279, 4, 1, rgba.byteLength);
+  entry(282, 5, 1, xresPos); entry(283, 5, 1, yresPos); entry(338, 3, 1, 2);
+  v.setUint32(p, 0, true);
+  return new Blob([buf], { type: "image/tiff" });
+}
+function canvasToPDF(canvas, quality) {
+  const flat = flatten(canvas);
+  return new Promise((resolve, reject) => {
+    flat.toBlob(async (blob) => {
+      if (!blob) { reject(new Error("jpeg")); return; }
+      const jpg = new Uint8Array(await blob.arrayBuffer());
+      const w = canvas.width, h = canvas.height;
+      const content = "q " + w + " 0 0 " + h + " 0 0 cm /Im0 Do Q\n";
+      const enc = new TextEncoder();
+      const parts = [];
+      const offsets = [];
+      let pos = 0;
+      const push = (bytes) => { parts.push(bytes); pos += bytes.length; };
+      const pushStr = (s) => push(enc.encode(s));
+      pushStr("%PDF-1.4\n");
+      offsets[1] = pos; pushStr("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+      offsets[2] = pos; pushStr("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+      offsets[3] = pos; pushStr("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + w + " " + h + "] /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>\nendobj\n");
+      const stream = enc.encode(content);
+      offsets[4] = pos;
+      pushStr("4 0 obj\n<< /Length " + stream.length + " >>\nstream\n");
+      push(stream);
+      pushStr("\nendstream\nendobj\n");
+      offsets[5] = pos;
+      pushStr("5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + w + " /Height " + h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpg.length + " >>\nstream\n");
+      push(jpg);
+      pushStr("\nendstream\nendobj\n");
+      const xref = pos;
+      let xrefBody = "xref\n0 6\n0000000000 65535 f \n";
+      for (let i = 1; i <= 5; i++) xrefBody += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+      pushStr(xrefBody);
+      pushStr("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF");
+      resolve(new Blob(parts, { type: "application/pdf" }));
+    }, "image/jpeg", quality);
+  });
+}
+function stamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2500);
+}
+async function save() {
+  if (!source) { setStatus("Önce resim açın"); return; }
+  drawPreview();
+  const canvas = $("prevCanvas");
+  const format = $("format").value;
+  const quality = Math.min(1, Math.max(0.4, num("quality") || 0.92));
+  const ext = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/avif": "avif", "image/bmp": "bmp", "image/tiff": "tif", "application/pdf": "pdf" }[format] || "png";
+  const filename = fileBase + "_" + stamp() + "." + ext;
+  try {
+    let blob;
+    if (format === "image/bmp") blob = canvasToBMP(canvas);
+    else if (format === "image/tiff") blob = canvasToTIFF(canvas);
+    else if (format === "application/pdf") blob = await canvasToPDF(canvas, quality);
+    else {
+      const srcCanvas = format === "image/jpeg" ? flatten(canvas) : canvas;
+      blob = await new Promise((res) => srcCanvas.toBlob(res, format, quality));
+      if (!blob) { setStatus("Bu tarayıcı " + ext.toUpperCase() + " yazamıyor"); return; }
+    }
+    downloadBlob(blob, filename);
+    $("fileInfo").textContent = filename;
+    setStatus("Kaydedildi: " + filename);
+  } catch (err) {
+    setStatus("Kayıt başarısız");
+  }
+}
+function imgPos(e) {
+  const rect = $("workCanvas").getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left - S.panX) / S.zoom,
+    y: (e.clientY - rect.top - S.panY) / S.zoom
+  };
+}
+function hitHandle(x, y) {
+  const sel = S.sel;
+  const hs = 14 / S.zoom;
+  const map = {
+    nw: [sel.x, sel.y], ne: [sel.x + sel.w, sel.y], sw: [sel.x, sel.y + sel.h], se: [sel.x + sel.w, sel.y + sel.h],
+    n: [sel.x + sel.w / 2, sel.y], s: [sel.x + sel.w / 2, sel.y + sel.h], w: [sel.x, sel.y + sel.h / 2], e: [sel.x + sel.w, sel.y + sel.h / 2]
+  };
+  for (const k of Object.keys(map)) {
+    const p = map[k];
+    if (Math.abs(x - p[0]) <= hs && Math.abs(y - p[1]) <= hs) return k;
+  }
+  if (x >= sel.x && x <= sel.x + sel.w && y >= sel.y && y <= sel.y + sel.h) return "move";
+  return null;
+}
+const workCanvas = $("workCanvas");
+workCanvas.addEventListener("pointerdown", (e) => {
+  if (!source) return;
+  workCanvas.setPointerCapture(e.pointerId);
+  const p = imgPos(e);
+  const handle = hitHandle(p.x, p.y);
+  if (S.mode === "pan" || e.altKey) drag = { type: "pan", lx: e.clientX, ly: e.clientY };
+  else if (handle && handle !== "move") { commit(); drag = { type: "resize", handle, start: p, sel: { ...S.sel } }; }
+  else if (handle === "move") { commit(); drag = { type: "move", start: p, sel: { ...S.sel } }; }
+  else { commit(); drag = { type: "new", start: p }; }
+  workCanvas.classList.add("grabbing");
+});
+workCanvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = imgPos(e);
+  const d = getDisplay();
+  if (!d) return;
+  if (drag.type === "pan") {
+    S.panX += e.clientX - drag.lx;
+    S.panY += e.clientY - drag.ly;
+    drag.lx = e.clientX; drag.ly = e.clientY;
+    redraw();
+    return;
+  }
+  if (drag.type === "move") {
+    S.sel = clampSel({ x: drag.sel.x + (p.x - drag.start.x), y: drag.sel.y + (p.y - drag.start.y), w: drag.sel.w, h: drag.sel.h }, d.width, d.height);
+  } else if (drag.type === "new") {
+    const x = Math.min(drag.start.x, p.x), y = Math.min(drag.start.y, p.y);
+    S.sel = clampSel({ x, y, w: Math.abs(p.x - drag.start.x), h: Math.abs(p.y - drag.start.y) }, d.width, d.height);
+  } else {
+    const hd = drag.handle;
+    let x = drag.sel.x, y = drag.sel.y, w = drag.sel.w, h = drag.sel.h;
+    const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+    const east = hd === "e" || hd === "ne" || hd === "se";
+    const west = hd === "w" || hd === "nw" || hd === "sw";
+    const south = hd === "s" || hd === "se" || hd === "sw";
+    const north = hd === "n" || hd === "ne" || hd === "nw";
+    if (east) w = drag.sel.w + dx;
+    if (south) h = drag.sel.h + dy;
+    if (west) { x = drag.sel.x + dx; w = drag.sel.w - dx; }
+    if (north) { y = drag.sel.y + dy; h = drag.sel.h - dy; }
+    S.sel = clampSel({ x, y, w, h }, d.width, d.height);
+  }
+  if (S.follow) { S.outW = Math.round(S.sel.w); S.outH = Math.round(S.sel.h); }
+  syncInputs();
+  redraw();
+});
+function endDrag() { drag = null; workCanvas.classList.remove("grabbing"); }
+workCanvas.addEventListener("pointerup", endDrag);
+workCanvas.addEventListener("pointercancel", endDrag);
+workCanvas.addEventListener("wheel", (e) => {
+  if (!source) return;
+  e.preventDefault();
+  const rect = workCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const ix = (mx - S.panX) / S.zoom, iy = (my - S.panY) / S.zoom;
+  S.zoom = Math.max(0.05, Math.min(20, S.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+  S.panX = mx - ix * S.zoom;
+  S.panY = my - iy * S.zoom;
+  redraw();
+}, { passive: false });
+
+$("openBtn").onclick = () => $("file").click();
+$("file").onchange = (e) => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value = ""; };
+$("closeBtn").onclick = closeImage;
+$("zoomIn").onclick = () => zoomBy(1.2);
+$("zoomOut").onclick = () => zoomBy(1 / 1.2);
+$("fitBtn").onclick = fitView;
+$("modeSelect").onclick = () => {
+  S.mode = "select";
+  $("modeSelect").classList.add("active");
+  $("modePan").classList.remove("active");
+  workCanvas.classList.remove("pan");
+};
+$("modePan").onclick = () => {
+  S.mode = "pan";
+  $("modePan").classList.add("active");
+  $("modeSelect").classList.remove("active");
+  workCanvas.classList.add("pan");
+};
+["selX", "selY", "selW", "selH"].forEach((id) => { $(id).addEventListener("change", fromSel); });
+$("fullBtn").onclick = () => {
+  const d = getDisplay();
+  if (!d) return;
+  commit();
+  S.sel = { x: 0, y: 0, w: d.width, h: d.height };
+  if (S.follow) { S.outW = d.width; S.outH = d.height; }
+  syncInputs();
+  redraw();
+};
+$("rotR").onclick = () => rotate(90);
+$("rotL").onclick = () => rotate(-90);
+$("flipH").onclick = () => flip("h");
+$("flipV").onclick = () => flip("v");
+$("angle").addEventListener("change", () => { if (!source) return; commit(); setGeometry({ rotation: num("angle") || 0 }); });
+["skewX", "skewY"].forEach((id) => {
+  $(id).addEventListener("pointerdown", commit);
+  $(id).addEventListener("input", () => { if (!source) return; setGeometry({ skewX: num("skewX"), skewY: num("skewY") }); });
+});
+["brightness", "contrast", "saturation", "blur"].forEach((id) => {
+  $(id).addEventListener("pointerdown", commit);
+  $(id).addEventListener("input", readFilters);
+});
+document.querySelectorAll("[data-filter]").forEach((b) => { b.onclick = () => setFilter(b.dataset.filter); });
+$("bgWhite").onclick = () => removeBackground("white");
+$("bgGray").onclick = () => removeBackground("gray");
+$("bgBoth").onclick = () => removeBackground("both");
+$("undoBtn").onclick = undo;
+$("resetBtn").onclick = resetAll;
+$("outW").addEventListener("change", () => fromOut("w"));
+$("outH").addEventListener("change", () => fromOut("h"));
+$("follow").onchange = () => {
+  S.follow = $("follow").checked;
+  if (S.follow) { S.outW = Math.round(S.sel.w); S.outH = Math.round(S.sel.h); syncInputs(); redraw(); }
+};
+$("lock").onchange = () => { S.lock = $("lock").checked; };
+document.querySelectorAll("[data-ratio]").forEach((b) => {
+  b.onclick = () => {
+    const [a, c] = b.dataset.ratio.split(",").map(Number);
+    setRatio(a, c);
+  };
+});
+$("saveBtn").onclick = save;
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(); }
+});
+window.addEventListener("dragover", (e) => { e.preventDefault(); $("drop").classList.add("on"); });
+window.addEventListener("dragleave", (e) => { if (e.target === document.documentElement) $("drop").classList.remove("on"); });
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  $("drop").classList.remove("on");
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+window.addEventListener("resize", redraw);
+redraw();
+</script>
+</body>
+</html>
