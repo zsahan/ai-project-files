@@ -34,7 +34,7 @@ You can click on the links below to try out the applications directly in your br
 
 * **[Local Image Touches](https://zsahan.github.io/ai-project-files/Local-ImageResizer/)** - *Mini touches for your local images*
 * **[CPU vs GPU vs AI Model](https://zsahan.github.io/ai-project-files/cpu-gpu-ai-karsilastirma/)** - *CPU vs GPU vs AI Model Comparison*
-* **[CPU Theoretical Compute]([https://github.io](https://zsahan.github.io/ai-project-files/cpu-compute-hesaplama/))** - *Theoretical calculation of CPU operations per second*
+* **[CPU Theoretical Compute](https://github.io](https://zsahan.github.io/ai-project-files/cpu-compute-hesaplama/ )** - *Theoretical calculation of CPU operations per second*
 
 
 ## 🛠️ Technologies Used
