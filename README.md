@@ -1,4 +1,4 @@
-# ai-preject-files
+# ai-project-files
 AI ile oluşturduğum mini uygulamalar :) - Mini web apps created with AI :)
 
 # 🤖 AI Mini Uygulamalarım
