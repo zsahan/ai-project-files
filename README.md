@@ -32,8 +32,10 @@ Each application is located in its own folder and can be run directly through a 
 
 You can click on the links below to try out the applications directly in your browser:
 
-* **[App 1 Name](https://github.io)** - *A short sentence about what the app does.*
-* **[App 2 Name](https://github.io)** - *A short sentence about what the app does.*
+* **[Local Image Touches](https://zsahan.github.io/ai-project-files/Local-ImageResizer/)** - *Mini touches for your local images*
+* **[CPU vs GPU vs AI Model](https://github.io)** - *CPU vs GPU vs AI Model Comparison*
+* **[CPU Theoretical Compute](https://github.io)** - *Theoretical calculation of CPU operations per second*
+
 
 ## 🛠️ Technologies Used
 * HTML5, CSS3, JavaScript
